@@ -1,0 +1,11 @@
+{
+  "name": "wing",
+  "version-string": "0.1.0",
+  "description": "experimental c/c++ build system",
+  "dependencies": [
+    "fmt",
+    "tomlplusplus",
+    "spdlog",
+    "reproc"
+  ]
+}
