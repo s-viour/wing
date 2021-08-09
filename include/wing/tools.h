@@ -4,23 +4,23 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 #include <filesystem>
 namespace fs = std::filesystem;
 
 
 namespace wing {
-  class tool {
+  struct tool {
   private:
     std::string tool_name;
     fs::path tool_path;
-    bool tool_found = false;
 
   public:
-    tool(const std::string&);
-    bool good() { return tool_found; }
-
+    tool(const std::string& name, const fs::path& path) : tool_name(name), tool_path(path) {}
     int execute(const std::vector<std::string>&);
   };
+
+  std::optional<tool> init_tool(const std::string&);
 }
 
 

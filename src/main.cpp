@@ -108,11 +108,13 @@ void generate_buildfile(fs::path& dir) {
 }
 
 int build_dir(fs::path& dir) {
-  tool ninja("ninja");
-  fmt::print("tool [ninja] init: {}\n", ninja.good() ? "good" : "failed");
-  if (!ninja.good()) {
+  auto maybe_ninja = init_tool("ninja");
+  if (!maybe_ninja) {
+    fmt::print(stderr, "ninja failed to initialize! is it in your PATH?");
     throw std::runtime_error("required tool failed to initialize");
   }
+  spdlog::info("tool [ninja] init: {}\n", maybe_ninja ? "good" : "failed");
+  auto ninja = maybe_ninja.value();
 
   return ninja.execute({"-C", (dir / "build").string()});
 }
