@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 #include <iostream>
 #include <fmt/core.h>
 #include <wing/ninja.h>
@@ -45,7 +46,12 @@ int main(int argc, char* argv[]) {
     }
 
     fmt::print("generating buildfile...\n");
-    generate_buildfile(pwd);
+    try {
+      generate_buildfile(pwd);
+    } catch (std::runtime_error& e) {
+      fmt::print(stderr, "failed to generate buildfile: {}", e.what());
+      return 1;
+    }
     fmt::print("generated buildfile successfully! building...\n");
     int status = -1;
     try {
@@ -79,10 +85,13 @@ void generate_buildfile(fs::path& dir) {
   auto build_dir = dir / "build";
   fs::create_directory(build_dir);
 
+  if (!wing::init_tool("c++")) {
+    throw std::runtime_error("failed to initialize required tool [c++]");
+  }
   std::ofstream buildfile((build_dir / "build.ninja").string());
   buildfile 
     << ninja_variable{"cflags", "-Wall -I../include"}
-    << ninja_variable{"cxx", "g++"}
+    << ninja_variable{"cxx", "c++"}
     << ninja_rule{
       .name="cc",
       .command="$cxx -MMD -MT $out -MF $out.d $cflags -c $in -o $out",
@@ -93,8 +102,10 @@ void generate_buildfile(fs::path& dir) {
     << ninja_rule{"link", "$cxx $ldflags -o $out $in $libs"};
 
   std::vector<fs::path> outputs;
+  auto valid_exts = std::vector{".cpp", ".cxx", ".cc"};
   for (auto& p : fs::directory_iterator("src")) {
-    if (p.path().extension() != ".cpp") {
+    auto pred = [p](auto val) { return val == p.path().extension(); };
+    if (std::none_of(valid_exts.begin(), valid_exts.end(), pred)) {
       continue;
     }
     auto path = ".." / p.path();
