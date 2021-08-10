@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 
     std::string projname(argv[2]);
     auto projdir = fs::current_path() / projname;
-    project_from_template("wingdefault", projdir);
+    project_template::default_project().create(projdir);
 
     fmt::print("generated project {} in directory {}\n", projname, projdir.string());
   } else if (cmd == "build") {
