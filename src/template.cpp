@@ -21,66 +21,66 @@ void project_template::create(const fs::path& root) {
       fs::create_directory(root / file.location);
     } else {
       std::ofstream created((root / file.location).string());
-      if (!file.contents || file.contents == "") {
-        spdlog::warn("empty file {} created. this may be in error!", file.location.string());
+      if (file.contents == "") {
+        spdlog::warn("empty file {} created. this may be an error!", file.location.string());
       }
-      created << file.contents.value_or("");
+      created << file.contents;
     }
   }
 }
 
 project_template project_template::default_project() {
-  const static char* README = 
-    "# project\n"
-    "your project description here!\n";
+  static constexpr auto README = R"(
+# project\n
+your project description here!
+)";
 
-  const static char* MAIN_CPP = 
-    "#include <project/sayhello.h>\n"
-    "\n"
-    "int main() {\n"
-    "  sayhello(\"world\");\n"
-    "}\n";
+  static constexpr auto MAIN_CPP = R"(
+#include <project/sayhello.h>
 
-  const static char* SAYHELLO_HDR =
-    "#include <string>\n"
-    "\n"
-    "\n"
-    "void sayhello(const std::string&);\n";
+int main() {
+  sayhello("world");
+};
+)";
+
+  constexpr static auto SAYHELLO_HDR = R"(
+#include <string>
+
+
+void sayhello(const std::string&);
+)";
   
-  const static char* SAYHELLO_CPP = 
-    "#include <iostream>\n"
-    "#include <project/sayhello.h>\n"
-    "\n"
-    "void sayhello(const std::string& name) {\n"
-    "  std::cout << \"hello, \" << name << \"!\\n\";"
-    "}\n";
+  constexpr static auto SAYHELLO_CPP = R"(
+#include <iostream>
+#include <project/sayhello.h>
+
+void sayhello(const std::string& name) {
+  std::cout << "hello, " << name << "!\n";
+}
+)";
 
   project_template t("wing-default");
   t
     .add_file(project_file{
       .file_type = project_file::DIRECTORY,
-      .location = fs::path("src"),
-      .contents = {}
+      .location = fs::path("src")
     })
     .add_file(project_file{
       .file_type = project_file::DIRECTORY,
-      .location = fs::path("include"),
-      .contents = {}
+      .location = fs::path("include")
     })
     .add_file(project_file{
       .file_type = project_file::DIRECTORY,
-      .location = fs::path("include/project"),
-      .contents = {}
+      .location = fs::path("include/project")
     })
     .add_file(project_file{
       .file_type = project_file::DIRECTORY,
-      .location = fs::path("src"),
-      .contents = {}
+      .location = fs::path("src")
     })
     .add_file(project_file{
       .file_type = project_file::FILE,
       .location = fs::path("README.md"),
-      .contents = {README}
+      .contents = README
     })
     .add_file(project_file{
       .file_type = project_file::FILE,

@@ -16,7 +16,7 @@ namespace wing {
 
     const project_file_type file_type;
     const fs::path location;
-    const std::optional<std::string> contents;
+    const std::string contents;
   };
 
   class project_template {
