@@ -27,7 +27,7 @@ namespace wing {
   public:
     explicit project_template(const std::string& n) : template_name(n) {}
     
-    project_template& add_file(const project_file&);
+    void add_file(const project_file&);
     void create(const fs::path&);
 
     static project_template default_project();

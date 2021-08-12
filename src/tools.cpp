@@ -10,8 +10,6 @@
 namespace fs = std::filesystem;
 
 
-std::optional<fs::path> find_tool(const std::string&);
-
 int wing::tool::execute(const std::vector<std::string>& args) {
   reproc::options opts;
   opts.redirect.parent = true;
@@ -26,16 +24,7 @@ int wing::tool::execute(const std::vector<std::string>& args) {
   return ec ? ec.value() : status;
 }
 
-std::optional<wing::tool> wing::init_tool(const std::string& name) {
-  const auto tool_path = find_tool(name);
-  if (tool_path.has_value()) {
-    return {wing::tool(name, tool_path.value())};
-  } else {
-    return {};
-  }
-}
-
-std::optional<fs::path> find_tool(const std::string& name) {
+std::optional<fs::path> wing::find_tool(const std::string& name) {
   spdlog::debug("attempting to find tool {}", name);
   auto envpath = std::getenv("PATH");
   if (envpath == NULL) {

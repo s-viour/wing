@@ -16,11 +16,15 @@ namespace wing {
     fs::path tool_path;
 
   public:
-    tool(const std::string& name, const fs::path& path) : tool_name(name), tool_path(path) {}
+    tool() = default;
+    tool(const std::string& name, const fs::path& path)
+      : tool_name(name),
+      tool_path(path) {}
+    
     int execute(const std::vector<std::string>&);
   };
 
-  std::optional<tool> init_tool(const std::string&);
+  std::optional<fs::path> find_tool(const std::string&);
 }
 
 

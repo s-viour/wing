@@ -9,9 +9,8 @@ namespace fs = std::filesystem;
 using namespace wing;
 
 
-project_template& project_template::add_file(const project_file& file) {
+void project_template::add_file(const project_file& file) {
   children.push_back(file);
-  return *this;
 }
 
 void project_template::create(const fs::path& root) {
@@ -59,44 +58,55 @@ void sayhello(const std::string& name) {
 }
 )";
 
+  constexpr static auto MANIFEST = R"(
+name = "project"
+type = "executable"
+vcpkg_dir = "/path/to/vcpkg"
+dependencies = []
+)";
+
   project_template t("wing-default");
-  t
-    .add_file(project_file{
-      .file_type = project_file::DIRECTORY,
-      .location = fs::path("src")
-    })
-    .add_file(project_file{
-      .file_type = project_file::DIRECTORY,
-      .location = fs::path("include")
-    })
-    .add_file(project_file{
-      .file_type = project_file::DIRECTORY,
-      .location = fs::path("include/project")
-    })
-    .add_file(project_file{
-      .file_type = project_file::DIRECTORY,
-      .location = fs::path("src")
-    })
-    .add_file(project_file{
-      .file_type = project_file::FILE,
-      .location = fs::path("README.md"),
-      .contents = README
-    })
-    .add_file(project_file{
-      .file_type = project_file::FILE,
-      .location = fs::path("include/project/sayhello.h"),
-      .contents = SAYHELLO_HDR
-    })
-    .add_file(project_file{
-      .file_type = project_file::FILE,
-      .location = fs::path("src/sayhello.cpp"),
-      .contents = SAYHELLO_CPP
-    })
-    .add_file(project_file{
-      .file_type = project_file::FILE,
-      .location = fs::path("src/main.cpp"),
-      .contents = MAIN_CPP
-    });
+  t.add_file(project_file{
+    .file_type = project_file::DIRECTORY,
+    .location = fs::path("src")
+  });
+  t.add_file(project_file{
+    .file_type = project_file::DIRECTORY,
+    .location = fs::path("include")
+  });
+  t.add_file(project_file{
+    .file_type = project_file::DIRECTORY,
+    .location = fs::path("include/project")
+  });
+  t.add_file(project_file{
+    .file_type = project_file::DIRECTORY,
+    .location = fs::path("src")
+  });
+  t.add_file(project_file{
+    .file_type = project_file::FILE,
+    .location = fs::path("README.md"),
+    .contents = README
+  });
+  t.add_file(project_file{
+    .file_type = project_file::FILE,
+    .location = fs::path("include/project/sayhello.h"),
+    .contents = SAYHELLO_HDR
+  });
+  t.add_file(project_file{
+    .file_type = project_file::FILE,
+    .location = fs::path("src/sayhello.cpp"),
+    .contents = SAYHELLO_CPP
+  });
+  t.add_file(project_file{
+    .file_type = project_file::FILE,
+    .location = fs::path("src/main.cpp"),
+    .contents = MAIN_CPP
+  });
+  t.add_file(project_file{
+    .file_type = project_file::FILE,
+    .location = fs::path("wing.toml"),
+    .contents = MANIFEST
+  });
 
   return t;
 }

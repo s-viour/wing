@@ -1,0 +1,2 @@
+name = "wing"
+dependencies = ["fmt", "spdlog", "tomlplusplus", "reproc"]

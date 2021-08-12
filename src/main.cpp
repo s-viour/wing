@@ -6,13 +6,17 @@
 #include <wing/ninja.h>
 #include <wing/template.h>
 #include <wing/tools.h>
+#include <wing/application.h>
 #include <spdlog/spdlog.h>
+#include <wing/config.h>
 namespace fs = std::filesystem;
 
 
 bool directory_is_project(const fs::path&);
 void generate_buildfile(fs::path&);
-int build_dir(fs::path&);
+int build_dir(application&, fs::path&);
+void vcpkg_install_deps(application&, fs::path&);
+void init_vcpkg(application&, fs::path&);
 
 int main(int argc, char* argv[]) {
   spdlog::set_level(spdlog::level::debug);
@@ -21,8 +25,8 @@ int main(int argc, char* argv[]) {
 
   if (argc < 2) {
     fmt::print("not enough arguments!\n");
-    fmt::print("usage: wing [new|build]\n");
-    return 0;
+    fmt::print("usage: wing [new|build|install|vcpkg-init]\n");
+    exit(0);
   }
 
   std::string cmd(argv[1]);
@@ -30,7 +34,7 @@ int main(int argc, char* argv[]) {
     if (argc < 3) {
       fmt::print("not enough arguments to 'new' command!\n");
       fmt::print("usage: wing new [projectname]\n");
-      return 0;
+      exit(0);
     }
 
     std::string projname(argv[2]);
@@ -42,29 +46,60 @@ int main(int argc, char* argv[]) {
     auto pwd = fs::current_path();
     if (!directory_is_project(pwd)) {
       fmt::print(stderr, "error: current directory is not a project folder!\n");
+      exit(1);
+    }
+
+    auto opts = app_options()
+      .add_required_tool("c++")
+      .add_required_tool("ninja");
+
+    application app;
+    try {
+      app = application(opts);
+    } catch (std::runtime_error& e) {
+      spdlog::error("{}", e.what());
+      exit(1);
+    }
+
+    generate_buildfile(pwd);
+    build_dir(app, pwd);
+  } else if (cmd == "init-vcpkg") {
+    auto pwd = fs::current_path();
+    if (!directory_is_project(pwd)) {
+      fmt::print(stderr, "error: current directory is not a project folder!\n");
       return 1;
     }
 
-    fmt::print("generating buildfile...\n");
+    auto opts = app_options()
+      .add_required_tool("git");
+    application app;
     try {
-      generate_buildfile(pwd);
+      app = application(opts);
     } catch (std::runtime_error& e) {
-      fmt::print(stderr, "failed to generate buildfile: {}", e.what());
+      spdlog::error("{}", e.what());
+      exit(1);
+    }
+
+    init_vcpkg(app, pwd);
+  } 
+  else if (cmd == "install") {
+    auto pwd = fs::current_path();
+    if (!directory_is_project(pwd)) {
+      fmt::print(stderr, "error: current directory is not a project folder!\n");
       return 1;
     }
-    fmt::print("generated buildfile successfully! building...\n");
-    int status = -1;
+
+    auto opts = app_options()
+      .add_required_tool("vcpkg");
+    
+    application app;
     try {
-      status = build_dir(pwd);
+      app = application(opts);
     } catch (std::runtime_error& e) {
-      fmt::print(stderr, "ninja failed to execute properly!");
-      return 1;
+      spdlog::error("{}", e.what());
+      exit(1);
     }
-    if (status != 0) {
-      fmt::print("build failed!\n");
-    } else {
-      fmt::print("built executable target in {}/build\n", pwd.string());
-    }
+    vcpkg_install_deps(app, pwd);
   }
   else {
     fmt::print("unknown subcommand: {}\n", cmd);
@@ -76,30 +111,72 @@ bool directory_is_project(const fs::path& dir) {
   fs::directory_entry srcdir(dir / "src");
   if (!srcdir.exists()) { return false; }
 
+  fs::directory_entry manifest(dir / "wing.toml");
+  if (!manifest.exists()) { return false; }
+
   return true;
 }
 
 void generate_buildfile(fs::path& dir) {
   using namespace wing;
 
+  project_config cfg;
+  try {
+    cfg = load_config(dir / "wing.toml");
+  } catch (std::runtime_error& e) {
+    spdlog::error("{}", e.what());
+    exit(1);
+  }
+
+
   auto build_dir = dir / "build";
   fs::create_directory(build_dir);
 
-  if (!wing::init_tool("c++")) {
-    throw std::runtime_error("failed to initialize required tool [c++]");
-  }
   std::ofstream buildfile((build_dir / "build.ninja").string());
   buildfile 
     << ninja_variable{"cflags", "-Wall -I../include"}
-    << ninja_variable{"cxx", "c++"}
+    << ninja_variable{"cxx", "c++"};
+
+  fs::directory_entry vcpkg(dir / "vcpkg");
+  if (vcpkg.exists()) {
+    buildfile
+      << ninja_variable{"cflags", "$cflags -I../vcpkg/installed/x64-linux/include"};
+      //<< ninja_variable{"ldflags", "-L../vcpkg/installed/x64-linux/lib"};
+    
+    // specify every library twice to ensure cyclic dependencies are correct
+    // this is a major fucking hack
+    {
+      fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
+      for (auto& entry : libs) {
+        if (!entry.is_regular_file()) {
+          continue;
+        }
+        buildfile << ninja_variable{"libs", "$libs " + entry.path().string()};
+      }
+    }
+    {
+      fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
+      for (auto& entry : libs) {
+        if (!entry.is_regular_file()) {
+          continue;
+        }
+        buildfile << ninja_variable{"libs", "$libs " + entry.path().string()};
+      }
+    }
+  }
+  
+  buildfile
     << ninja_rule{
       .name="cc",
-      .command="$cxx -MMD -MT $out -MF $out.d $cflags -c $in -o $out",
+      .command="$cxx -std=c++17 -MMD -MT $out -MF $out.d $cflags -c $in -o $out",
       .description="CC $out",
       .depfile="$out.d",
       .deps="gcc"
     }
-    << ninja_rule{"link", "$cxx $ldflags -o $out $in $libs"};
+    << ninja_rule{"link", "$cxx -o $out $in $ldflags $libs -lpthread -lrt"};
+
+  
+
 
   std::vector<fs::path> outputs;
   auto valid_exts = std::vector{".cpp", ".cxx", ".cc"};
@@ -114,18 +191,35 @@ void generate_buildfile(fs::path& dir) {
     buildfile << ninja_build{.command="cc", .outputs = output, .inputs = input};
     outputs.push_back(output);
   }
-  buildfile << ninja_build{.command="link", .outputs = "project", .inputs=outputs};
-  buildfile << "default project\n";
+  buildfile << ninja_build{.command="link", .outputs = cfg.name, .inputs=outputs};
+  buildfile << "default " << cfg.name << '\n';
 }
 
-int build_dir(fs::path& dir) {
-  auto maybe_ninja = init_tool("ninja");
-  spdlog::debug("tool [ninja] init: {}\n", maybe_ninja ? "good" : "failed");
-  if (!maybe_ninja) {
-    fmt::print(stderr, "ninja failed to initialize! is it in your PATH?");
-    throw std::runtime_error("required tool failed to initialize");
-  }
-  auto ninja = maybe_ninja.value();
-
+int build_dir(application& app, fs::path& dir) {
+  auto ninja = app.get_tool("ninja");
   return ninja.execute({"-C", (dir / "build").string()});
+}
+
+void init_vcpkg(application& app, fs::path& dir) {
+  auto git = app.get_tool("git");
+  auto path = (dir / "vcpkg");
+  git.execute({"clone", "https://github.com/microsoft/vcpkg.git", path.string()});
+
+  tool bootstrap("bootstrap", fs::path("./vcpkg/bootstrap-vcpkg.sh"));
+  bootstrap.execute({});
+}
+
+void vcpkg_install_deps(application& app, fs::path& dir) {
+  tool vcpkg("vcpkg", (dir / "vcpkg/vcpkg"));
+  project_config cfg;
+  try {
+    cfg = load_config(dir / "wing.toml");
+  } catch (std::runtime_error& e) {
+    spdlog::error("{}", e.what());
+    exit(1);
+  }
+
+  for (auto& dep : cfg.dependencies) {
+    vcpkg.execute({"install", dep.name});
+  }
 }
