@@ -119,6 +119,7 @@ bool directory_is_project(const fs::path& dir) {
 
 void generate_buildfile(fs::path& dir) {
   using namespace wing;
+  spdlog::debug("generating buildfile...");
 
   project_config cfg;
   try {
@@ -143,17 +144,6 @@ void generate_buildfile(fs::path& dir) {
       << ninja_variable{"cflags", "$cflags -I../vcpkg/installed/x64-linux/include"};
       //<< ninja_variable{"ldflags", "-L../vcpkg/installed/x64-linux/lib"};
     
-    // specify every library twice to ensure cyclic dependencies are correct
-    // this is a major fucking hack
-    {
-      fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
-      for (auto& entry : libs) {
-        if (!entry.is_regular_file()) {
-          continue;
-        }
-        buildfile << ninja_variable{"libs", "$libs " + entry.path().string()};
-      }
-    }
     {
       fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
       for (auto& entry : libs) {
@@ -173,7 +163,7 @@ void generate_buildfile(fs::path& dir) {
       .depfile="$out.d",
       .deps="gcc"
     }
-    << ninja_rule{"link", "$cxx -o $out $in $ldflags $libs -lpthread -lrt"};
+    << ninja_rule{"link", "$cxx -o $out $in $ldflags -Wl,--start-group $libs -Wl,--end-group -lpthread -lrt"};
 
   
 

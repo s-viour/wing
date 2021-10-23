@@ -40,15 +40,20 @@ std::optional<fs::path> wing::find_tool(const std::string& name) {
   }
 
   for (auto& path : paths) {
-    fs::directory_iterator it(path);
-    for (auto& entry : it) {
-      if (entry.path().filename() == name && entry.exists()) {
-        spdlog::debug("found tool [{}]", name);
-        return entry;
+    try {
+      fs::directory_iterator it(path);
+      for (auto& entry : it) {
+        if (entry.path().filename() == name && entry.exists()) {
+          spdlog::debug("found tool [{}]", name);
+          return entry;
+        }
       }
+    } catch (fs::filesystem_error& e) {
+      spdlog::debug("skipping nonexistent directory [{}]", path.string());
+      continue;
     }
   }
 
-  spdlog::debug("failed to find tool [{}]", name);
+  spdlog::warn("failed to find tool [{}]", name);
   return {};
 }
