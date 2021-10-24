@@ -88,17 +88,8 @@ int main(int argc, char* argv[]) {
       fmt::print(stderr, "error: current directory is not a project folder!\n");
       return 1;
     }
-
-    auto opts = app_options()
-      .add_required_tool("vcpkg");
     
     application app;
-    try {
-      app = application(opts);
-    } catch (std::runtime_error& e) {
-      spdlog::error("{}", e.what());
-      exit(1);
-    }
     vcpkg_install_deps(app, pwd);
   }
   else {
