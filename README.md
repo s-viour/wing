@@ -18,7 +18,7 @@ wing currently has 4 commands:
 * `vcpkg-init` - initializes [vcpkg](https://vcpkg.io/en/index.html) in the project folder. **this command must be run before dependencies can be added!**
 
 # building
-to build wing, you'll need a copy of... wing! the [releases page](https://github.com/s-viour/wing/releases) will have the latest binary you can use. simply enter the project directory and run:
+to build wing, you'll need a copy of... wing! the [releases page](https://github.com/s-viour/wing/releases) will have the latest binary you can use. you'll also need a couple basic packages: `gcc`, `pkg-config`, and obviously `git`. support for other compilers will come eventually! simply enter the project directory and run:
 1. `wing init-vcpkg`
 2. `wing install`
 3. `wing build`
