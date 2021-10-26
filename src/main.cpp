@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
 
     application app;
     try {
-      app = application(opts);
-    } catch (std::runtime_error& e) {
+      app = init_application(opts);
+    } catch (tool_not_found_error& e) {
       spdlog::error("{}", e.what());
       exit(1);
     }
@@ -74,8 +74,8 @@ int main(int argc, char* argv[]) {
       .add_required_tool("git");
     application app;
     try {
-      app = application(opts);
-    } catch (std::runtime_error& e) {
+      app = init_application(opts);
+    } catch (tool_not_found_error& e) {
       spdlog::error("{}", e.what());
       exit(1);
     }

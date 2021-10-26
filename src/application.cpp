@@ -13,18 +13,25 @@ const std::vector<std::string>& app_options::get_required() const {
   return required_tools;
 }
 
-application::application(const app_options& opts) {
+tool& application::get_tool(const std::string& name) {
+  return tools.at(name);
+}
+
+void application::add_tool(const std::string& name, const tool& t) {
+  tools.insert({name, t});
+}
+
+application wing::init_application(const app_options& opts) {
+  application app;
+
   for (const auto& t : opts.get_required()) {
     auto path = find_tool(t);
     if (!path) {
       spdlog::error("failed to initialize required tool: {}", t);
-      throw std::runtime_error("failed to initialize required tool!");
+      throw tool_not_found_error();
     }
-    auto pair = std::make_pair(t, tool(t, path.value()));
-    tools.insert(pair);
+    app.add_tool(t, tool(t, path.value()));
   }
-}
 
-tool& application::get_tool(const std::string& name) {
-  return tools.at(name);
+  return app;
 }
