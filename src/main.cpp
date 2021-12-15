@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 
   if (argc < 2) {
     fmt::print(stderr, "not enough arguments!\n");
-    fmt::print(stderr, "usage: wing [new|build|install|vcpkg-init]\n");
+    fmt::print(stderr, "usage: wing [new|build|install|vcpkg-init|clean]\n");
     exit(0);
   }
 
