@@ -23,15 +23,23 @@ namespace wing {
     const std::vector<std::string>& get_required() const;
   };
 
+  class tool_not_found_error : public std::runtime_error {
+  public:
+    tool_not_found_error()
+      : std::runtime_error("failed to initialize required tool!") {}
+  };
+
   class application {
   private:
     std::unordered_map<std::string, wing::tool> tools;
   
   public:
     application() = default;
-    explicit application(const app_options&);
     tool& get_tool(const std::string&);
+    void add_tool(const std::string&, const wing::tool&);
   };
+
+  application init_application(const app_options&);
 }
 
 
