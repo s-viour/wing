@@ -7,7 +7,7 @@ std::ostream& operator<<(std::ostream& o, const wing::ninja_variable& v) {
     return o;
   }
 
-  for (auto i = 0; i < v.indent; ++i) {
+  for (unsigned i = 0; i < v.indent; ++i) {
     o << "  ";
   }
 

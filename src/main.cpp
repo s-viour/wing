@@ -118,13 +118,14 @@ void generate_buildfile(fs::path& dir) {
   using namespace wing;
   spdlog::debug("generating buildfile...");
 
-  project_config cfg;
-  try {
-    cfg = load_config(dir / "wing.toml");
-  } catch (std::runtime_error& e) {
-    spdlog::error("{}", e.what());
+  auto excfg = load_config(dir / "wing.toml");
+  if (!excfg) {
+    spdlog::error("{}", excfg.error());
+    // we should try and clean this up
+    // ideally, all these effecting functions will return an expected/unexpected
     exit(1);
   }
+  auto cfg = excfg.value();
 
 
   auto build_dir = dir / "build";
@@ -198,13 +199,14 @@ void init_vcpkg(application& app, fs::path& dir) {
 
 void vcpkg_install_deps(application& app, fs::path& dir) {
   tool vcpkg("vcpkg", (dir / "vcpkg/vcpkg"));
-  project_config cfg;
-  try {
-    cfg = load_config(dir / "wing.toml");
-  } catch (std::runtime_error& e) {
-    spdlog::error("{}", e.what());
+  auto excfg = load_config(dir / "wing.toml");
+  if (!excfg) {
+    spdlog::error("{}", excfg.error());
+    // we should try and clean this up
+    // ideally, all these effecting functions will return an expected/unexpected
     exit(1);
   }
+  auto cfg = excfg.value();
 
   for (auto& dep : cfg.dependencies) {
     vcpkg.execute({"install", dep.name});
