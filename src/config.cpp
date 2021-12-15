@@ -1,11 +1,12 @@
-#include <wing/config.h>
 #include <fstream>
 #include <toml++/toml.h>
+#include <wing/config.h>
+#include <wing/error.h>
 
 using namespace wing;
 
 
-project_config wing::load_config(const fs::path& path) {
+wing::expected<project_config> wing::load_config(const fs::path& path) {
   auto table = toml::parse_file(path.string());
   auto name = table["name"].value<std::string>();
   //auto project_type = table["type"].value<std::string>();
@@ -13,7 +14,9 @@ project_config wing::load_config(const fs::path& path) {
   auto table_dependencies = table["dependencies"].as_array();
 
   if (!name || !table_dependencies) {
-    throw std::runtime_error("config missing required values or has malformed values");
+    return wing::unexpected(
+      wing::error("config missing required values or has malformed values")
+    );
   }
 
   std::vector<dependency> dependencies;

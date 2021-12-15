@@ -1,4 +1,5 @@
 #include <wing/application.h>
+#include <wing/error.h>
 #include <spdlog/spdlog.h>
 
 using namespace wing;
@@ -21,14 +22,15 @@ void application::add_tool(const std::string& name, const tool& t) {
   tools.insert({name, t});
 }
 
-application wing::init_application(const app_options& opts) {
+wing::expected<application> wing::create_application(const app_options& opts) {
   application app;
 
   for (const auto& t : opts.get_required()) {
     auto path = find_tool(t);
     if (!path) {
-      spdlog::error("failed to initialize required tool: {}", t);
-      throw tool_not_found_error();
+      auto s = fmt::format("failed to initialize required tool [{}]", t);
+      spdlog::error(s);
+      return wing::unexpected(s);
     }
     app.add_tool(t, tool(t, path.value()));
   }

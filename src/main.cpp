@@ -24,17 +24,17 @@ int main(int argc, char* argv[]) {
   std::string progname(argv[0]);
 
   if (argc < 2) {
-    fmt::print("not enough arguments!\n");
-    fmt::print("usage: wing [new|build|install|vcpkg-init]\n");
+    fmt::print(stderr, "not enough arguments!\n");
+    fmt::print(stderr, "usage: wing [new|build|install|vcpkg-init]\n");
     exit(0);
   }
 
   std::string cmd(argv[1]);
   if (cmd == "new") {
     if (argc < 3) {
-      fmt::print("not enough arguments to 'new' command!\n");
-      fmt::print("usage: wing new [projectname]\n");
-      exit(0);
+      fmt::print(stderr, "not enough arguments to 'new' command!\n");
+      fmt::print(stderr, "usage: wing new [projectname]\n");
+      return 0;
     }
 
     std::string projname(argv[2]);
@@ -46,23 +46,21 @@ int main(int argc, char* argv[]) {
     auto pwd = fs::current_path();
     if (!directory_is_project(pwd)) {
       fmt::print(stderr, "error: current directory is not a project folder!\n");
-      exit(1);
+      return 1;
     }
 
     auto opts = app_options()
       .add_required_tool("c++")
       .add_required_tool("ninja");
 
-    application app;
-    try {
-      app = init_application(opts);
-    } catch (tool_not_found_error& e) {
-      spdlog::error("{}", e.what());
-      exit(1);
+    auto app = create_application(opts);
+    if (app) {
+      generate_buildfile(pwd);
+      build_dir(app.value(), pwd);
+    } else {
+      spdlog::error("{}", app.error());
+      return 1;
     }
-
-    generate_buildfile(pwd);
-    build_dir(app, pwd);
   } else if (cmd == "init-vcpkg") {
     auto pwd = fs::current_path();
     if (!directory_is_project(pwd)) {
@@ -72,27 +70,35 @@ int main(int argc, char* argv[]) {
 
     auto opts = app_options()
       .add_required_tool("git");
-    application app;
-    try {
-      app = init_application(opts);
-    } catch (tool_not_found_error& e) {
-      spdlog::error("{}", e.what());
-      exit(1);
+    
+    auto app = create_application(opts);
+    if (app) {
+      init_vcpkg(app.value(), pwd);
+    } else {
+      spdlog::error("{}", app.error());
+      return 1;
     }
-
-    init_vcpkg(app, pwd);
-  } 
-  else if (cmd == "install") {
+  } else if (cmd == "install") {
     auto pwd = fs::current_path();
     if (!directory_is_project(pwd)) {
       fmt::print(stderr, "error: current directory is not a project folder!\n");
       return 1;
     }
     
-    application app;
+    // safe to get value, this will succeed
+    auto app = create_application({}).value();
     vcpkg_install_deps(app, pwd);
-  }
-  else {
+  } else if (cmd == "clean") {
+    auto opts = app_options()
+      .add_required_tool("ninja");
+    auto app = create_application(opts);
+    if (app) {
+      app.value().get_tool("ninja").execute({"-C", "build", "-t", "clean"});
+    } else {
+      spdlog::error("{}", app.error());
+      return 1;
+    }
+  } else {
     fmt::print("unknown subcommand: {}\n", cmd);
   }
   return 0;

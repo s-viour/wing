@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <filesystem>
+#include <wing/error.h>
 
 namespace fs = std::filesystem;
 
@@ -35,7 +36,7 @@ namespace wing {
     project_config() = default;
   };
 
-  project_config load_config(const fs::path&);
+  wing::expected<project_config> load_config(const fs::path&);
 }
 
 

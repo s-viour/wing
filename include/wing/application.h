@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include <wing/tools.h>
+#include <wing/error.h>
 
 namespace fs = std::filesystem;
 
@@ -32,14 +33,14 @@ namespace wing {
   class application {
   private:
     std::unordered_map<std::string, wing::tool> tools;
-  
+
   public:
     application() = default;
     tool& get_tool(const std::string&);
     void add_tool(const std::string&, const wing::tool&);
   };
 
-  application init_application(const app_options&);
+  wing::expected<application> create_application(const app_options&);
 }
 
 
