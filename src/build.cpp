@@ -6,16 +6,16 @@
 
 using namespace wing;
 
-void wing::generate_buildfile(fs::path& dir) {
+wing::expected<void> wing::generate_buildfile(application& app) {
   using namespace wing;
   spdlog::debug("generating buildfile...");
 
+  auto& dir = app.get_working_directory();
   auto excfg = load_config(dir / "wing.toml");
   if (!excfg) {
-    spdlog::error("{}", excfg.error());
-    // we should try and clean this up
-    // ideally, all these effecting functions will return an expected/unexpected
-    exit(1);
+    auto s = fmt::format("{}", excfg.error());
+    spdlog::error(s);
+    return wing::unexpected(s);
   }
   auto cfg = excfg.value();
 
@@ -73,4 +73,15 @@ void wing::generate_buildfile(fs::path& dir) {
   }
   buildfile << ninja_build{.command="link", .outputs = cfg.name, .inputs=outputs};
   buildfile << "default " << cfg.name << '\n';
+  return {};
+}
+
+wing::expected<void> wing::build_dir(application& app) {
+  auto& dir = app.get_working_directory();
+  auto ninja = app.get_tool("ninja");
+  auto status = ninja.execute({"-C", (dir / "build").string()});
+  if (status != 0) {
+    return wing::unexpected({"build failure!"});
+  }
+  return {};
 }

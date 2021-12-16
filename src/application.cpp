@@ -23,8 +23,15 @@ const fs::path& application::get_working_directory() const {
   return working_directory;
 }
 
+const cxxopts::Options& application::get_cli_options() const {
+  return cli_opts;
+}
+const cxxopts::ParseResult& application::get_cli_results() const {
+  return cli_result;
+}
+
 wing::expected<application> wing::create_application(const app_options& opts) {
-  application app;
+  application app(opts);
   app.working_directory = opts.working_directory;
 
   for (const auto& t : opts.required_tools) {

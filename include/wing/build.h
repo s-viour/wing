@@ -2,6 +2,7 @@
 #include <vector>
 #include <wing/application.h>
 #include <wing/config.h>
+#include <wing/error.h>
 namespace fs = std::filesystem;
 
 namespace wing {
@@ -22,6 +23,6 @@ namespace wing {
   };
 
   project create_project(fs::path&);
-  void generate_buildfile(fs::path&);
-  int build_dir(wing::application&, fs::path&);
+  wing::expected<void> generate_buildfile(wing::application&);
+  wing::expected<void> build_dir(wing::application&);
 }

@@ -1,2 +1,5 @@
 name = "wing"
-dependencies = ["fmt", "spdlog", "tomlplusplus", "reproc", "tl-expected"]
+dependencies = [
+    "fmt", "spdlog", "tomlplusplus", "reproc",
+    "tl-expected", "cxxopts"
+]
