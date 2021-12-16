@@ -70,7 +70,9 @@ wing::expected<void> run(const cxxopts::Options& copts, const cxxopts::ParseResu
   } else if (cmd == "install") {
     return create_application(opts)
       .and_then(vcpkg_install);
-  } else if (cmd == "vcpkg-init") {
+  } else if (cmd == "init-vcpkg") {
+    opts
+      .add_required_tool("git");
     return create_application(opts)
       .and_then(init_vcpkg);
   } else if (cmd == "new") {
