@@ -9,14 +9,15 @@
 #include <wing/application.h>
 #include <spdlog/spdlog.h>
 #include <wing/config.h>
+#include <wing/error.h>
 namespace fs = std::filesystem;
 
 
 bool directory_is_project(const fs::path&);
-void generate_buildfile(fs::path&);
-int build_dir(application&, fs::path&);
-void vcpkg_install_deps(application&, fs::path&);
-void init_vcpkg(application&, fs::path&);
+wing::expected<application> generate_buildfile(application&&);
+wing::expected<application> build_dir(application&&);
+wing::expected<application> vcpkg_install_deps(application&&);
+wing::expected<application> init_vcpkg(application&&);
 
 int main(int argc, char* argv[]) {
   spdlog::set_level(spdlog::level::debug);
@@ -26,7 +27,7 @@ int main(int argc, char* argv[]) {
   if (argc < 2) {
     fmt::print(stderr, "not enough arguments!\n");
     fmt::print(stderr, "usage: wing [new|build|install|vcpkg-init|clean]\n");
-    exit(0);
+    return 0;
   }
 
   std::string cmd(argv[1]);
@@ -51,14 +52,14 @@ int main(int argc, char* argv[]) {
 
     auto opts = app_options()
       .add_required_tool("c++")
-      .add_required_tool("ninja");
-
-    auto app = create_application(opts);
-    if (app) {
-      generate_buildfile(pwd);
-      build_dir(app.value(), pwd);
-    } else {
-      spdlog::error("{}", app.error());
+      .add_required_tool("ninja")
+      .set_working_directory(pwd);
+    
+    auto result = create_application(opts)
+      .and_then(generate_buildfile)
+      .and_then(build_dir);
+    if (!result) {
+      spdlog::error("{}", result.error());
       return 1;
     }
   } else if (cmd == "init-vcpkg") {
@@ -71,11 +72,10 @@ int main(int argc, char* argv[]) {
     auto opts = app_options()
       .add_required_tool("git");
     
-    auto app = create_application(opts);
-    if (app) {
-      init_vcpkg(app.value(), pwd);
-    } else {
-      spdlog::error("{}", app.error());
+    auto result = create_application(opts)
+      .and_then(init_vcpkg);
+    if (!result) {
+      spdlog::error("{}", result.error());
       return 1;
     }
   } else if (cmd == "install") {
@@ -86,8 +86,14 @@ int main(int argc, char* argv[]) {
     }
     
     // safe to get value, this will succeed
-    auto app = create_application({}).value();
-    vcpkg_install_deps(app, pwd);
+    auto opts = app_options()
+      .set_working_directory(pwd);
+    auto result = create_application(opts)
+      .and_then(vcpkg_install_deps);
+    if (!result) {
+      spdlog::error("{}", result.error());
+      return 1;
+    }
   } else if (cmd == "clean") {
     auto opts = app_options()
       .add_required_tool("ninja");
@@ -114,16 +120,17 @@ bool directory_is_project(const fs::path& dir) {
   return true;
 }
 
-void generate_buildfile(fs::path& dir) {
+wing::expected<application> generate_buildfile(application&& mapp) {
+  auto app = std::move(mapp);
   using namespace wing;
   spdlog::debug("generating buildfile...");
 
+  auto& dir = app.get_working_directory();
   auto excfg = load_config(dir / "wing.toml");
   if (!excfg) {
-    spdlog::error("{}", excfg.error());
-    // we should try and clean this up
-    // ideally, all these effecting functions will return an expected/unexpected
-    exit(1);
+    auto s = fmt::format("{}", excfg.error());
+    spdlog::error(s);
+    return wing::unexpected(s);
   }
   auto cfg = excfg.value();
 
@@ -181,34 +188,48 @@ void generate_buildfile(fs::path& dir) {
   }
   buildfile << ninja_build{.command="link", .outputs = cfg.name, .inputs=outputs};
   buildfile << "default " << cfg.name << '\n';
+  return std::move(app);
 }
 
-int build_dir(application& app, fs::path& dir) {
+wing::expected<application> build_dir(application&& mapp) {
+  auto app = std::move(mapp);
+  auto& dir = app.get_working_directory();
   auto ninja = app.get_tool("ninja");
-  return ninja.execute({"-C", (dir / "build").string()});
+  auto status = ninja.execute({"-C", (dir / "build").string()});
+  if (status != 0) {
+    return wing::unexpected(fmt::format("build failure! code: {}", status));
+  }
+  return std::move(app);
 }
 
-void init_vcpkg(application& app, fs::path& dir) {
+wing::expected<application> init_vcpkg(application&& mapp) {
+  auto app = std::move(mapp);
+  auto& dir = app.get_working_directory();
   auto git = app.get_tool("git");
   auto path = (dir / "vcpkg");
   git.execute({"clone", "https://github.com/microsoft/vcpkg.git", path.string()});
 
   tool bootstrap("bootstrap", fs::path("./vcpkg/bootstrap-vcpkg.sh"));
   bootstrap.execute({});
+  return app;
 }
 
-void vcpkg_install_deps(application& app, fs::path& dir) {
+wing::expected<application> vcpkg_install_deps(application&& mapp) {
+  auto app = std::move(mapp);
+  auto& dir = app.get_working_directory();
   tool vcpkg("vcpkg", (dir / "vcpkg/vcpkg"));
   auto excfg = load_config(dir / "wing.toml");
   if (!excfg) {
-    spdlog::error("{}", excfg.error());
+    auto s = fmt::format("{}", excfg.error());
+    spdlog::error(s);
     // we should try and clean this up
     // ideally, all these effecting functions will return an expected/unexpected
-    exit(1);
+    return wing::unexpected(s);
   }
   auto cfg = excfg.value();
 
   for (auto& dep : cfg.dependencies) {
     vcpkg.execute({"install", dep.name});
   }
+  return app;
 }

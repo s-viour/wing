@@ -10,29 +10,31 @@ app_options& app_options::add_required_tool(const std::string& name) {
   return *this;
 }
 
-const std::vector<std::string>& app_options::get_required() const {
-  return required_tools;
+app_options& app_options::set_working_directory(const fs::path& p) {
+  working_directory = p;
+  return *this;
 }
 
 tool& application::get_tool(const std::string& name) {
   return tools.at(name);
 }
 
-void application::add_tool(const std::string& name, const tool& t) {
-  tools.insert({name, t});
+const fs::path& application::get_working_directory() const {
+  return working_directory;
 }
 
 wing::expected<application> wing::create_application(const app_options& opts) {
   application app;
+  app.working_directory = opts.working_directory;
 
-  for (const auto& t : opts.get_required()) {
+  for (const auto& t : opts.required_tools) {
     auto path = find_tool(t);
     if (!path) {
       auto s = fmt::format("failed to initialize required tool [{}]", t);
       spdlog::error(s);
       return wing::unexpected(s);
     }
-    app.add_tool(t, tool(t, path.value()));
+    app.tools.insert({t, tool(t, path.value())});
   }
 
   return app;

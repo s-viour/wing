@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
+#include <spdlog/spdlog.h>
 #include <wing/tools.h>
 #include <wing/error.h>
 
@@ -13,31 +14,27 @@ namespace fs = std::filesystem;
 
 
 namespace wing {
-  class app_options {
-  private:
+  struct app_options {
     std::vector<std::string> required_tools;
+    fs::path working_directory;
 
-  public:
     app_options() = default;
-
     app_options& add_required_tool(const std::string&);
-    const std::vector<std::string>& get_required() const;
-  };
-
-  class tool_not_found_error : public std::runtime_error {
-  public:
-    tool_not_found_error()
-      : std::runtime_error("failed to initialize required tool!") {}
+    app_options& set_working_directory(const fs::path&);
   };
 
   class application {
   private:
     std::unordered_map<std::string, wing::tool> tools;
+    fs::path working_directory;
+    friend wing::expected<application> create_application(const app_options&);
 
   public:
     application() = default;
+    application(const application&) = delete;
+    application(application&& a) = default;
     tool& get_tool(const std::string&);
-    void add_tool(const std::string&, const wing::tool&);
+    const fs::path& get_working_directory() const;
   };
 
   wing::expected<application> create_application(const app_options&);
