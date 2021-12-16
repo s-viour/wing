@@ -2,7 +2,6 @@
 #include <fstream>
 #include <algorithm>
 #include <iostream>
-#include <spdlog/spdlog.h>
 #include <fmt/core.h>
 #include <cxxopts.hpp>
 #include <wing/ninja.h>
@@ -21,8 +20,9 @@ wing::expected<void> run(const cxxopts::Options& opts, const cxxopts::ParseResul
 wing::expected<void> help(wing::application&&);
 wing::expected<void> build(wing::application&&);
 wing::expected<void> clean(wing::application&&);
-wing::expected<void> init_vcpkg(application&&);
-wing::expected<void> vcpkg_install(application&&);
+wing::expected<void> init_vcpkg(wing::application&&);
+wing::expected<void> vcpkg_install(wing::application&&);
+wing::expected<void> new_project(wing::application&&);
 
 int main(int argc, char* argv[]) {
   cxxopts::Options options("wing", "experimental c++ build system");
@@ -73,6 +73,9 @@ wing::expected<void> run(const cxxopts::Options& copts, const cxxopts::ParseResu
   } else if (cmd == "vcpkg-init") {
     return create_application(opts)
       .and_then(init_vcpkg);
+  } else if (cmd == "new") {
+    return create_application(opts)
+      .and_then(new_project);
   }
 
   return wing::unexpected({"invalid command!"});
@@ -129,15 +132,24 @@ wing::expected<void> vcpkg_install(application&& _app) {
   tool vcpkg("vcpkg", (dir / "vcpkg/vcpkg"));
   auto excfg = load_config(dir / "wing.toml");
   if (!excfg) {
-    auto s = fmt::format("{}", excfg.error());
-    spdlog::error(s);
-    return wing::unexpected(s);
+    return wing::unexpected(excfg.error());
   }
   auto cfg = excfg.value();
 
   for (auto& dep : cfg.dependencies) {
     vcpkg.execute({"install", dep.name});
   }
+  return {};
+}
+
+wing::expected<void> new_project(application&& _app) {
+  auto app = std::move(_app);
+  auto args = app.get_cli_results()["arguments"].as<std::vector<std::string>>();
+  if (args.empty()) {
+    return wing::unexpected({"not enough arguments!"});
+  }
+  fs::path dir = args.at(0);
+  project_template::default_project().create(dir);
   return {};
 }
 
