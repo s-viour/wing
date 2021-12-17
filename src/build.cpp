@@ -35,7 +35,7 @@ wing::expected<void> wing::generate_buildfile(application& app) {
       //<< ninja_variable{"ldflags", "-L../vcpkg/installed/x64-linux/lib"};
     
     {
-      fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
+      fs::recursive_directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
       for (auto& entry : libs) {
         if (!entry.is_regular_file()) {
           continue;
