@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fmt/core.h>
 #include <cxxopts.hpp>
+#include <spdlog/spdlog.h>
 #include <wing/ninja.h>
 #include <wing/template.h>
 #include <wing/tools.h>
@@ -36,6 +37,12 @@ int main(int argc, char* argv[]) {
   try {
     options.parse_positional({"command", "arguments"});
     auto result = options.parse(argc, argv);
+    // setup spdlog properly based on the -d or --debug switch
+    spdlog::set_level(spdlog::level::err);
+    if (result["debug"].count()) {
+      spdlog::set_level(spdlog::level::debug);
+    }
+    
     run(options, result)
       .map_error([](auto e) {
         fmt::print(stderr, "error executing command: {}\n", e);
@@ -68,6 +75,8 @@ wing::expected<void> run(const cxxopts::Options& copts, const cxxopts::ParseResu
     return create_application(opts)
       .and_then(clean);
   } else if (cmd == "install") {
+    opts
+      .add_required_tool("vcpkg/vcpkg");
     return create_application(opts)
       .and_then(vcpkg_install);
   } else if (cmd == "init-vcpkg") {
@@ -95,7 +104,9 @@ wing::expected<void> build(wing::application&& _app) {
   }
   auto res1 = wing::generate_buildfile(app);
   if (!res1) return res1;
-  return wing::build_dir(app);
+  auto result = wing::build_dir(app);
+  fmt::print("finished build!\n");
+  return result;
 }
 
 wing::expected<void> clean(wing::application&& _app) {
@@ -121,6 +132,7 @@ wing::expected<void> init_vcpkg(application&& _app) {
   git.execute({"clone", "https://github.com/microsoft/vcpkg.git", path.string()});
 
   tool bootstrap("bootstrap", fs::path("./vcpkg/bootstrap-vcpkg.sh"));
+  // TODO: check return value of execute
   bootstrap.execute({});
   return {};
 }

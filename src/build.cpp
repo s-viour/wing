@@ -35,7 +35,7 @@ wing::expected<void> wing::generate_buildfile(application& app) {
       //<< ninja_variable{"ldflags", "-L../vcpkg/installed/x64-linux/lib"};
     
     {
-      fs::recursive_directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
+      fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
       for (auto& entry : libs) {
         if (!entry.is_regular_file()) {
           continue;
@@ -60,7 +60,7 @@ wing::expected<void> wing::generate_buildfile(application& app) {
 
   std::vector<fs::path> outputs;
   auto valid_exts = std::vector{".cpp", ".cxx", ".cc"};
-  for (auto& p : fs::directory_iterator("src")) {
+  for (auto& p : fs::recursive_directory_iterator("src")) {
     auto pred = [p](auto val) { return val == p.path().extension(); };
     if (std::none_of(valid_exts.begin(), valid_exts.end(), pred)) {
       continue;
@@ -73,11 +73,13 @@ wing::expected<void> wing::generate_buildfile(application& app) {
   }
   buildfile << ninja_build{.command="link", .outputs = cfg.name, .inputs=outputs};
   buildfile << "default " << cfg.name << '\n';
+  spdlog::debug("successfully generated buildfile!");
   return {};
 }
 
 wing::expected<void> wing::build_dir(application& app) {
   auto& dir = app.get_working_directory();
+  spdlog::debug("building directory {}", dir.string());
   auto ninja = app.get_tool("ninja");
   auto status = ninja.execute({"-C", (dir / "build").string()});
   if (status != 0) {

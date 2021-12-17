@@ -19,19 +19,32 @@ int wing::tool::execute(const std::vector<std::string>& args) {
   
   int status = -1;
   std::error_code ec;
+  spdlog::debug("executing tool [{}]", this->tool_name);
   std::tie(status, ec) = reproc::run(fullargs, opts);
 
   return ec ? ec.value() : status;
 }
 
 std::optional<fs::path> wing::find_tool(const std::string& name) {
-  spdlog::debug("attempting to find tool {}", name);
+  spdlog::debug("attempting to find tool [{}]", name);
+
+  // check the relative (and technically absolute) paths first
+  // if we found it there, return it immediately
+  auto relative = fs::path(name);
+  if (fs::exists(relative)) {
+    return relative;
+  }
+
+  // otherwise, check the PATH
   auto envpath = std::getenv("PATH");
   if (envpath == NULL) {
-    spdlog::warn("PATH variable is empty! wing cannot find external tools");
+    // if PATH is undefined, we can't find anything
+    // so return nothing
+    spdlog::warn("PATH variable is empty, wing cannot find tools via PATH!");
     return {};
   }
 
+  // extract every path entry for searching
   std::vector<fs::path> paths;
   std::istringstream iss(envpath);
   std::string line;
@@ -39,6 +52,7 @@ std::optional<fs::path> wing::find_tool(const std::string& name) {
     paths.push_back(line);
   }
 
+  // iterate every path entry looking for a file called `name`
   for (auto& path : paths) {
     try {
       fs::directory_iterator it(path);
