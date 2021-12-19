@@ -10,7 +10,15 @@ namespace fs = std::filesystem;
 
 
 namespace wing {
-  struct tool {
+  class tool_error : public std::exception {
+  private:
+    std::string msg;
+  public:
+    tool_error(const std::error_code&);
+    const char* what();
+  };
+
+  class tool {
   private:
     std::string tool_name;
     fs::path tool_path;
@@ -18,8 +26,9 @@ namespace wing {
   public:
     tool() = default;
     tool(const std::string& name, const fs::path& path)
-      : tool_name(name),
-      tool_path(path) {}
+      : tool_name(name)
+      , tool_path(path)
+    {}
     
     int execute(const std::vector<std::string>&);
   };

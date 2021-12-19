@@ -6,7 +6,6 @@
 #include <vector>
 #include <optional>
 #include <filesystem>
-#include <wing/error.h>
 
 namespace fs = std::filesystem;
 
@@ -27,16 +26,20 @@ namespace wing {
     dependency() = default;
   };
 
+  class config_error : public std::runtime_error {
+  public:
+    config_error(const std::string& s)
+      : std::runtime_error(s) {} 
+  };
+
   struct project_config {
     std::string name;
     //const project_type type;
     //fs::path vcpkg_dir;
     std::vector<dependency> dependencies;
-
-    project_config() = default;
   };
 
-  wing::expected<project_config> load_config(const fs::path&);
+  wing::project_config load_config(const fs::path&);
 }
 
 

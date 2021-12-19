@@ -9,8 +9,15 @@
 #include <reproc++/run.hpp>
 namespace fs = std::filesystem;
 
+using namespace wing;
 
-int wing::tool::execute(const std::vector<std::string>& args) {
+tool_error::tool_error(const std::error_code& ec) {
+  msg = fmt::format("error code: {}", ec.value());
+}
+
+const char* tool_error::what() { return msg.c_str(); }
+
+int tool::execute(const std::vector<std::string>& args) {
   reproc::options opts;
   opts.redirect.parent = true;
   std::vector<std::string> fullargs;
@@ -21,8 +28,10 @@ int wing::tool::execute(const std::vector<std::string>& args) {
   std::error_code ec;
   spdlog::debug("executing tool [{}]", this->tool_name);
   std::tie(status, ec) = reproc::run(fullargs, opts);
-
-  return ec ? ec.value() : status;
+  if (ec) {
+    throw tool_error(ec);
+  }
+  return status;
 }
 
 std::optional<fs::path> wing::find_tool(const std::string& name) {

@@ -29,12 +29,12 @@ void project_template::create(const fs::path& root) {
 }
 
 project_template project_template::default_project() {
-  static constexpr auto README = R"(
+  static constexpr auto README = R"(\
 # project\n
 your project description here!
 )";
 
-  static constexpr auto MAIN_CPP = R"(
+  static constexpr auto MAIN_CPP = R"(\
 #include <project/sayhello.h>
 
 int main() {
@@ -42,14 +42,14 @@ int main() {
 };
 )";
 
-  constexpr static auto SAYHELLO_HDR = R"(
+  constexpr static auto SAYHELLO_HDR = R"(\
 #include <string>
 
 
 void sayhello(const std::string&);
 )";
   
-  constexpr static auto SAYHELLO_CPP = R"(
+  constexpr static auto SAYHELLO_CPP = R"(\
 #include <iostream>
 #include <project/sayhello.h>
 
@@ -58,10 +58,8 @@ void sayhello(const std::string& name) {
 }
 )";
 
-  constexpr static auto MANIFEST = R"(
+  constexpr static auto MANIFEST = R"(\
 name = "project"
-type = "executable"
-vcpkg_dir = "/path/to/vcpkg"
 dependencies = []
 )";
 

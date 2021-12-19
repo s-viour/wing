@@ -6,18 +6,56 @@
 
 using namespace wing;
 
-wing::expected<void> wing::generate_buildfile(application& app) {
-  using namespace wing;
+void project::add_include(const fs::path& f) { include_paths.push_back(f); }
+void project::add_src(const fs::path& f) { source_files.push_back(f); }
+const project_config& project::cfg() const { return project_cfg; }
+const fs::path& project::dir() const { return project_dir; }
+const std::vector<fs::path>& project::includes() const { return include_paths; }
+const std::vector<fs::path>& project::sources() const { return source_files; }
+
+wing::project wing::load_project(const fs::path& dir) {
+  // first, check and ensure the required files are there
+  if (!fs::exists(dir / "src")) {
+    throw project_error("missing src directory");
+  } else if (!fs::exists(dir / "wing.toml")) {
+    throw project_error("missing wing.toml file");
+  } else if (fs::is_empty(dir / "src")) {
+    throw project_error("src directory is empty");
+  }
+
+  // this may throw, the caller should attempt to catch
+  // BOTH project_error and config_error
+  auto cfg = load_config(dir / "wing.toml");
+  project prj(std::move(cfg), dir);
+
+  // add source and header files
+  // use recursive_directory_iterator to make sure we find
+  // every single source file
+  fs::recursive_directory_iterator src(dir / "src");
+  for (auto& file : src) {
+    prj.add_src(file);
+  }
+
+  if (fs::exists(dir / "include")) {
+    // non-recursive directory traversal for the include folder
+    // we only want to go one-level deep here since the organization
+    // in the include folder actually matters
+    fs::directory_iterator include(dir / "include");
+    for (auto& file : include) {
+      prj.add_include(file);
+    }
+  }
+
+  return prj;
+}
+
+
+void wing::generate_buildfile(const project& prj) {
   spdlog::debug("generating buildfile...");
 
-  auto& dir = app.get_working_directory();
+  auto& cfg = prj.cfg();
+  auto& dir = prj.dir();
   auto excfg = load_config(dir / "wing.toml");
-  if (!excfg) {
-    auto s = fmt::format("{}", excfg.error());
-    spdlog::error(s);
-    return wing::unexpected(s);
-  }
-  auto cfg = excfg.value();
 
 
   auto build_dir = dir / "build";
@@ -74,16 +112,9 @@ wing::expected<void> wing::generate_buildfile(application& app) {
   buildfile << ninja_build{.command="link", .outputs = cfg.name, .inputs=outputs};
   buildfile << "default " << cfg.name << '\n';
   spdlog::debug("successfully generated buildfile!");
-  return {};
 }
 
-wing::expected<void> wing::build_dir(application& app) {
-  auto& dir = app.get_working_directory();
-  spdlog::debug("building directory {}", dir.string());
+void wing::build_dir(application& app) {
   auto ninja = app.get_tool("ninja");
-  auto status = ninja.execute({"-C", (dir / "build").string()});
-  if (status != 0) {
-    return wing::unexpected({"build failure!"});
-  }
-  return {};
+  ninja.execute({"-C", "build"});
 }
