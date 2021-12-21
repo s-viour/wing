@@ -50,7 +50,8 @@ class init_vcpkg_operation : public wing::operation {
       .add_required_tool("git");
     auto app = wing::create_application(opts);
     auto git = app.get_tool("git");
-    git.execute({"clone", "https://github.com/microsoft/vcpkg.git", fs::current_path().string()});
+    auto path = fs::current_path() / "vcpkg";
+    git.execute({"clone", "https://github.com/microsoft/vcpkg.git", path.string()});
     wing::tool bootstrap("bootstrap", fs::path("./vcpkg/bootstrap-vcpkg.sh"));
     if (bootstrap.execute({}) != 0) {
       fmt::print(stderr, "bootstrap script failed to execute!\n");
