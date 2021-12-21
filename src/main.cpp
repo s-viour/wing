@@ -2,6 +2,7 @@
 #include <fstream>
 #include <algorithm>
 #include <iostream>
+#include <exception>
 #include <fmt/core.h>
 #include <cxxopts.hpp>
 #include <spdlog/spdlog.h>
@@ -21,7 +22,7 @@ int main(int argc, char* argv[]) {
     ("h,help", "show help", cxxopts::value<std::string>())
     ("d,debug", "enable debug logging")
     ("command", "command to run", cxxopts::value<std::string>()->default_value("help"))
-    ("arguments", "arguments to the command", cxxopts::value<std::vector<std::string>>()->implicit_value({}))
+    ("arguments", "arguments to the command", cxxopts::value<std::vector<std::string>>()->default_value({}));
   ;
   
   try {
@@ -37,8 +38,8 @@ int main(int argc, char* argv[]) {
   } catch (cxxopts::OptionException&) {
     // if an exception was thrown during parse
     // print help and exit
-    fmt::print("error encountered while parsing\n");
-    fmt::print("{}", options.help({"", "help", "debug"}));
+    fmt::print(stderr, "invalid arguments!\n");
+    fmt::print(stderr, "{}", options.help({"", "help", "debug"}));
     return 0;
   }
 }
@@ -46,14 +47,21 @@ int main(int argc, char* argv[]) {
 void run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
   app_options opts;
   auto ops = wing::load_operations();
-  fmt::print("loaded operations\n");
+  spdlog::debug("loaded operations");
 
   auto cmd = res["command"].as<std::string>();
-  //auto args = res["arguments"].as<std::vector<std::string>>();
+  auto args = res["arguments"].as<std::vector<std::string>>();
+  if (cmd == "help") {
+    fmt::print("{}", cli.help());
+    return;
+  }
+
   try {
-    fmt::print("trying to run\n");
-    ops.at(cmd)->run(std::move(opts));
+    spdlog::debug("attempting to run operation {}", cmd);
+    ops.at(cmd)->run(std::move(opts), args);
   } catch (const std::out_of_range& e) {
-    fmt::print(stderr, "invalid command [{}]!", cmd);
+    fmt::print(stderr, "invalid command {}!\n", cmd);
+  } catch (const std::exception& e) {
+    fmt::print(stderr, "an error occurred while running {}: {}\n", cmd, e.what());
   }
 }
