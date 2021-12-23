@@ -6,6 +6,7 @@
 
 
 class build_operation : public wing::operation {
+public:
   void run(wing::app_options&& _opts, const std::vector<std::string>&) {
     auto prj = wing::load_project(fs::current_path());
 
@@ -21,6 +22,7 @@ class build_operation : public wing::operation {
 };
 
 class clean_operation : public wing::operation {
+public:
   void run(wing::app_options&& _opts, const std::vector<std::string>&) {
     auto opts = std::move(_opts);
     opts
@@ -31,6 +33,7 @@ class clean_operation : public wing::operation {
 };
 
 class new_operation : public wing::operation {
+public:
   void run(wing::app_options&& _opts, const std::vector<std::string>& args) {
     if (args.empty()) {
       fmt::print(stderr, "missing arguments to command!\n");
@@ -44,6 +47,7 @@ class new_operation : public wing::operation {
 };
 
 class init_vcpkg_operation : public wing::operation {
+public:
   void run(wing::app_options&& _opts, const std::vector<std::string>&) {
     auto opts = std::move(_opts);
     opts
@@ -60,6 +64,7 @@ class init_vcpkg_operation : public wing::operation {
 };
 
 class install_operation : public wing::operation {
+public:
   void run(wing::app_options&& _opts, const std::vector<std::string>&) {
     auto opts = std::move(_opts);
     opts
@@ -73,6 +78,27 @@ class install_operation : public wing::operation {
   }
 };
 
+class run_operation : public wing::operation {
+public:
+  void run(wing::app_options&& _opts, const std::vector<std::string>&) {
+    auto cfg = wing::load_config(fs::current_path() / "wing.toml");
+    auto opts = std::move(_opts);
+    auto cloned_opts = opts;
+    auto exename = fmt::format("build/{}", cfg.name);
+    opts
+      .add_required_tool(exename);
+    wing::application app;
+    try {
+      app = wing::create_application(opts);
+    } catch (const wing::application_error& e) {
+      fmt::print("building executable before running\n");
+      build_operation().run(std::move(cloned_opts), {});
+    }
+    app = wing::create_application(opts);
+    app.get_tool(exename).execute({});
+  }
+};
+
 std::unordered_map<std::string, std::unique_ptr<wing::operation>> wing::load_operations() {
   std::unordered_map<std::string, std::unique_ptr<wing::operation>> m;
   m.insert({"build", std::make_unique<build_operation>()});
@@ -80,6 +106,7 @@ std::unordered_map<std::string, std::unique_ptr<wing::operation>> wing::load_ope
   m.insert({"new", std::make_unique<new_operation>()});
   m.insert({"init-vcpkg", std::make_unique<init_vcpkg_operation>()});
   m.insert({"install", std::make_unique<install_operation>()});
+  m.insert({"run", std::make_unique<run_operation>()});
 
   return m;
 }
