@@ -1,51 +1,35 @@
+#include <spdlog/spdlog.h>
 #include <fmt/core.h>
 #include <wing/application.h>
 #include <wing/build.h>
 #include <wing/template.h>
 #include <wing/operations.h>
+#include <wing/application.h>
+#include <wing/project.h>
 
 
-class build_operation : public wing::operation {
-public:
-  void run(wing::app_options&& _opts, const std::vector<std::string>&) {
-    auto prj = wing::load_project(fs::current_path());
 
-    auto opts = std::move(_opts);
-    opts
-      .add_required_tool("ninja")
-      .add_required_tool("c++");
+void run_build(wing::application& app) {
+  wing::generate_buildfile(app.get_project());
+  wing::build_dir(app);
+}
 
-    auto app = wing::create_application(opts);
-    wing::generate_buildfile(prj);
-    wing::build_dir(app);
+void run_clean(wing::application& app) {
+  app.get_tool("ninja").execute({"-C", "build", "-t", "clean"});
+}
+
+void run_new(wing::application& app) {
+  auto& args = app.get_args();
+  if (args.empty()) {
+    fmt::print(stderr, "missing arguments to command!\n");
+    return;
   }
-};
+  auto tmplt = wing::project_template::default_project();
+  tmplt.create(app.get_working_dir() / args[0]);
+}
 
-class clean_operation : public wing::operation {
-public:
-  void run(wing::app_options&& _opts, const std::vector<std::string>&) {
-    auto opts = std::move(_opts);
-    opts
-      .add_required_tool("ninja");
-    auto app = wing::create_application(opts);
-    app.get_tool("ninja").execute({"-C", "build", "-t", "clean"});
-  }
-};
-
-class new_operation : public wing::operation {
-public:
-  void run(wing::app_options&& _opts, const std::vector<std::string>& args) {
-    if (args.empty()) {
-      fmt::print(stderr, "missing arguments to command!\n");
-      return;
-    }
-    auto opts = std::move(_opts);
-    auto app = wing::create_application(opts);
-    auto tmplt = wing::project_template::default_project();
-    tmplt.create(fs::current_path() / args[0]);
-  }
-};
-
+/*
+ * not sure if this command needs to come back
 class init_vcpkg_operation : public wing::operation {
 public:
   void run(wing::app_options&& _opts, const std::vector<std::string>&) {
@@ -62,51 +46,69 @@ public:
     }
   }
 };
+*/
 
-class install_operation : public wing::operation {
-public:
-  void run(wing::app_options&& _opts, const std::vector<std::string>&) {
-    auto opts = std::move(_opts);
-    opts
-      .add_required_tool("vcpkg/vcpkg");
-    auto app = wing::create_application(opts);
-    auto cfg = wing::load_config(fs::current_path() / "wing.toml");
-    auto vcpkg = app.get_tool("vcpkg/vcpkg");
-    for (auto& dep : cfg.dependencies) {
-      vcpkg.execute({"install", dep.name});
-    }
+
+void run_install(wing::application& app) {
+  spdlog::debug("running install");
+  auto cfg = app.get_config();
+  spdlog::debug("loaded config");
+  auto vcpkg = app.get_tool("vcpkg/vcpkg");
+  for (auto& dep : cfg.dependencies) {
+    spdlog::debug("installing {}", dep.name);
+    vcpkg.execute({"install", dep.name});
   }
-};
+}
 
-class run_operation : public wing::operation {
-public:
-  void run(wing::app_options&& _opts, const std::vector<std::string>&) {
-    auto cfg = wing::load_config(fs::current_path() / "wing.toml");
-    auto opts = std::move(_opts);
-    auto cloned_opts = opts;
-    auto exename = fmt::format("build/{}", cfg.name);
-    opts
-      .add_required_tool(exename);
-    wing::application app;
-    try {
-      app = wing::create_application(opts);
-    } catch (const wing::application_error& e) {
-      fmt::print("building executable before running\n");
-      build_operation().run(std::move(cloned_opts), {});
-    }
-    app = wing::create_application(opts);
-    app.get_tool(exename).execute({});
+
+void run_run(wing::application& app) {
+  const auto& cfg = app.get_config();
+  auto exename = fmt::format("build/{}", cfg.name);
+  if (!fs::exists(exename)) {
+    fmt::print("building executable before running");
+    run_build(app);
   }
-};
+  wing::tool executable(exename);
+  executable.execute(app.get_args());
+}
 
-std::unordered_map<std::string, std::unique_ptr<wing::operation>> wing::load_operations() {
-  std::unordered_map<std::string, std::unique_ptr<wing::operation>> m;
-  m.insert({"build", std::make_unique<build_operation>()});
-  m.insert({"clean", std::make_unique<clean_operation>()});
-  m.insert({"new", std::make_unique<new_operation>()});
-  m.insert({"init-vcpkg", std::make_unique<init_vcpkg_operation>()});
-  m.insert({"install", std::make_unique<install_operation>()});
-  m.insert({"run", std::make_unique<run_operation>()});
+std::unordered_map<std::string, wing::operation> wing::load_operations() {
+  std::unordered_map<std::string, operation> m;
+  auto build_operation = wing::operation {
+    .requires_project = true,
+    .required_tools = {"ninja", "c++"},
+    .run = run_build
+  };
+  auto clean_operation = wing::operation {
+    .requires_project = true,
+    .required_tools = {"ninja"},
+    .run = run_clean
+  };
+  auto new_operation = wing::operation {
+    .requires_project = false,
+    .required_tools = {},
+    .run = run_new
+  };
+  auto run_operation = wing::operation {
+    .requires_project = false,
+    .required_tools = {},
+    .run = run_run
+  };
+  auto install_operation = wing::operation {
+    .requires_project = true,
+    .required_tools = {"vcpkg/vcpkg"},
+    .run = run_install
+  };
+
+  // we may be able to optimize this by moving it into the insert
+  // not sure though
+  // TODO: investigate this
+  m.insert({"build", build_operation});
+  m.insert({"clean", clean_operation});
+  m.insert({"new", new_operation});
+  m.insert({"run", run_operation});
+  m.insert({"install", install_operation});
+
 
   return m;
 }

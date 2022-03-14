@@ -20,15 +20,11 @@ namespace wing {
 
   class tool {
   private:
-    std::string tool_name;
     fs::path tool_path;
 
   public:
     tool() = default;
-    tool(const std::string& name, const fs::path& path)
-      : tool_name(name)
-      , tool_path(path)
-    {}
+    tool(const fs::path& path) : tool_path(path) {}
     
     int execute(const std::vector<std::string>&);
   };

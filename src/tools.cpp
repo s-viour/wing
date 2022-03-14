@@ -26,7 +26,7 @@ int tool::execute(const std::vector<std::string>& args) {
   
   int status = -1;
   std::error_code ec;
-  spdlog::debug("executing tool [{}]", this->tool_name);
+  spdlog::debug("executing tool [{}]", tool_path.string());
   std::tie(status, ec) = reproc::run(fullargs, opts);
   if (ec) {
     throw tool_error(ec);
@@ -39,8 +39,9 @@ std::optional<fs::path> wing::find_tool(const std::string& name) {
 
   // check the relative (and technically absolute) paths first
   // if we found it there, return it immediately
-  auto relative = fs::path(name);
+  auto relative = fs::current_path() / fs::path(name);
   if (fs::exists(relative)) {
+    spdlog::debug("found [{}] at relative path", name);
     return relative;
   }
 

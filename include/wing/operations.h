@@ -8,12 +8,14 @@
 #include <wing/build.h>
 
 namespace wing {
-  class operation {
-  public:
-    virtual void run(app_options&&, const std::vector<std::string>& args) = 0;
+  typedef std::function<void(wing::application&)> operation_function;
+  struct operation {
+    bool requires_project;
+    std::vector<std::string> required_tools;
+    operation_function run;
   };
 
-  std::unordered_map<std::string, std::unique_ptr<operation>> load_operations();
+  std::unordered_map<std::string, operation> load_operations();
 }
 
 #endif 

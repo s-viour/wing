@@ -45,10 +45,6 @@ int main(int argc, char* argv[]) {
 }
 
 void run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
-  app_options opts;
-  auto ops = wing::load_operations();
-  spdlog::debug("loaded operations");
-
   auto cmd = res["command"].as<std::string>();
   auto args = res["arguments"].as<std::vector<std::string>>();
   if (cmd == "help") {
@@ -56,12 +52,24 @@ void run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
     return;
   }
 
-  try {
-    spdlog::debug("attempting to run operation {}", cmd);
-    ops.at(cmd)->run(std::move(opts), args);
-  } catch (const std::out_of_range& e) {
+  spdlog::debug("attempting to run operation {}", cmd);
+  auto ops = wing::load_operations();
+  auto found = ops.find(cmd);
+  if (found == ops.end()) {
     fmt::print(stderr, "invalid command {}!\n", cmd);
-  } catch (const std::exception& e) {
-    fmt::print(stderr, "an error occurred while running {}: {}\n", cmd, e.what());
+    return;
   }
+
+  auto& op = found->second;
+  application app(args);
+
+  for (auto& rqt : op.required_tools) {
+    auto tool = wing::find_tool(rqt);
+    if (!tool) {
+      fmt::print(stderr, "could not find tool {}!\n", rqt);
+      return;
+    }
+    app.add_tool(rqt, *tool);
+  }
+  op.run(app);
 }

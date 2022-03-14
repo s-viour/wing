@@ -3,15 +3,10 @@
 #include <spdlog/spdlog.h>
 #include <wing/build.h>
 #include <wing/ninja.h>
+#include <wing/application.h>
+#include <wing/project.h>
 
 using namespace wing;
-
-void project::add_include(const fs::path& f) { include_paths.push_back(f); }
-void project::add_src(const fs::path& f) { source_files.push_back(f); }
-const project_config& project::cfg() const { return project_cfg; }
-const fs::path& project::dir() const { return project_dir; }
-const std::vector<fs::path>& project::includes() const { return include_paths; }
-const std::vector<fs::path>& project::sources() const { return source_files; }
 
 wing::project wing::load_project(const fs::path& dir) {
   // first, check and ensure the required files are there
