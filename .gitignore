@@ -42,3 +42,6 @@ wiki
 
 # vscode files
 .vscode*
+
+# vcpkg stuff
+vcpkg*
