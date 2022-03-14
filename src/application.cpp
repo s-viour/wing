@@ -1,4 +1,3 @@
-#include <spdlog/spdlog.h>
 #include <wing/application.h>
 #include <wing/build.h>
 

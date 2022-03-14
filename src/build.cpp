@@ -109,7 +109,7 @@ void wing::generate_buildfile(const project& prj) {
   spdlog::debug("successfully generated buildfile!");
 }
 
-void wing::build_dir(application& app) {
+int wing::build_dir(application& app) {
   auto ninja = app.get_tool("ninja");
-  ninja.execute({"-C", "build"});
+  return ninja.execute({"-C", "build"});
 }

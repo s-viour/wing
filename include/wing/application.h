@@ -14,13 +14,6 @@
 namespace fs = std::filesystem;
 
 namespace wing {
-  class application_error : public std::runtime_error {
-  public:
-    application_error(const std::string& s)
-      : std::runtime_error(s)
-    {}
-  };
-
   class application {
   private:
     std::vector<std::string> cli_args;

@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 namespace wing {
   wing::project load_project(const fs::path&);
   void generate_buildfile(const project&);
-  void build_dir(wing::application&);
+  int build_dir(wing::application&);
 }
 
 #endif

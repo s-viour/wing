@@ -8,7 +8,7 @@
 #include <wing/build.h>
 
 namespace wing {
-  typedef std::function<void(wing::application&)> operation_function;
+  typedef std::function<int(wing::application&)> operation_function;
   struct operation {
     bool requires_project;
     std::vector<std::string> required_tools;

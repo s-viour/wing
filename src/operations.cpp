@@ -9,23 +9,24 @@
 
 
 
-void run_build(wing::application& app) {
+int run_build(wing::application& app) {
   wing::generate_buildfile(app.get_project());
-  wing::build_dir(app);
+  return wing::build_dir(app);
 }
 
-void run_clean(wing::application& app) {
-  app.get_tool("ninja").execute({"-C", "build", "-t", "clean"});
+int run_clean(wing::application& app) {
+  return app.get_tool("ninja").execute({"-C", "build", "-t", "clean"});
 }
 
-void run_new(wing::application& app) {
+int run_new(wing::application& app) {
   auto& args = app.get_args();
   if (args.empty()) {
     fmt::print(stderr, "missing arguments to command!\n");
-    return;
+    return 1;
   }
   auto tmplt = wing::project_template::default_project();
   tmplt.create(app.get_working_dir() / args[0]);
+  return 0;
 }
 
 /*
@@ -49,19 +50,24 @@ public:
 */
 
 
-void run_install(wing::application& app) {
+int run_install(wing::application& app) {
   spdlog::debug("running install");
   auto cfg = app.get_config();
   spdlog::debug("loaded config");
   auto vcpkg = app.get_tool("vcpkg/vcpkg");
   for (auto& dep : cfg.dependencies) {
     spdlog::debug("installing {}", dep.name);
-    vcpkg.execute({"install", dep.name});
+    auto status = vcpkg.execute({"install", dep.name});
+    if (status != 0) {
+      fmt::print(stderr, "vcpkg failed!\n");
+      return status;
+    }
   }
+  return 0;
 }
 
 
-void run_run(wing::application& app) {
+int run_run(wing::application& app) {
   const auto& cfg = app.get_config();
   auto exename = fmt::format("build/{}", cfg.name);
   if (!fs::exists(exename)) {
@@ -69,7 +75,7 @@ void run_run(wing::application& app) {
     run_build(app);
   }
   wing::tool executable(exename);
-  executable.execute(app.get_args());
+  return executable.execute(app.get_args());
 }
 
 std::unordered_map<std::string, wing::operation> wing::load_operations() {

@@ -14,9 +14,10 @@
 #include <wing/operations.h>
 namespace fs = std::filesystem;
 
-void run(const cxxopts::Options&, const cxxopts::ParseResult&);
+int run(const cxxopts::Options&, const cxxopts::ParseResult&);
 
 int main(int argc, char* argv[]) {
+  // setup CLI options 
   cxxopts::Options options("wing", "experimental c++ build system");
   options.add_options()
     ("h,help", "show help", cxxopts::value<std::string>())
@@ -34,42 +35,58 @@ int main(int argc, char* argv[]) {
       spdlog::set_level(spdlog::level::debug);
     }
     
-    run(options, result);
+    // delegate parsed-argument handling to run function
+    // it'll return success or failure based on how that goes
+    return run(options, result);
   } catch (cxxopts::OptionException&) {
     // if an exception was thrown during parse
     // print help and exit
     fmt::print(stderr, "invalid arguments!\n");
     fmt::print(stderr, "{}", options.help({"", "help", "debug"}));
-    return 0;
+    return 1;
   }
 }
 
-void run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
+int run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
+  // get arguments into correct types for handling
   auto cmd = res["command"].as<std::string>();
   auto args = res["arguments"].as<std::vector<std::string>>();
+  // special case, handle `help` command explicitly
   if (cmd == "help") {
     fmt::print("{}", cli.help());
-    return;
+    return 0;
   }
 
+  // load operations, attempt to find the matching one, and exit with error if not found
   spdlog::debug("attempting to run operation {}", cmd);
   auto ops = wing::load_operations();
   auto found = ops.find(cmd);
   if (found == ops.end()) {
     fmt::print(stderr, "invalid command {}!\n", cmd);
-    return;
+    return 1;
   }
 
   auto& op = found->second;
   application app(args);
 
+  // load all required tools
+  // if any of them fail to be found, exit with error
   for (auto& rqt : op.required_tools) {
     auto tool = wing::find_tool(rqt);
     if (!tool) {
       fmt::print(stderr, "could not find tool {}!\n", rqt);
-      return;
+      return 1;
     }
     app.add_tool(rqt, *tool);
   }
+
+  // check directory requirements
+  // * operations that require a project-directory may not be used OUTSIDE one
+  // * operations that don't require a project-directory may be used inside one, though
+  if (op.requires_project && !app.is_project()) {
+    fmt::print(stderr, "current directory is not valid project!\n");
+    return 1;
+  }
   op.run(app);
+  return 0;
 }

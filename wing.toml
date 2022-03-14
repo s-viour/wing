@@ -1,5 +1,4 @@
 name = "wing"
 dependencies = [
-    "fmt", "spdlog", "tomlplusplus", "reproc",
-    "tl-expected", "cxxopts"
+    "fmt", "spdlog", "tomlplusplus", "reproc", "cxxopts"
 ]
