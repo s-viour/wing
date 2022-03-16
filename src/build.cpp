@@ -102,7 +102,7 @@ void wing::generate_buildfile(const project& prj) {
   }
 
   // generate link command and default
-  buildfile << ninja_build{.command="link", .outputs={"wing"}, .inputs=objects};
+  buildfile << ninja_build{.command="link", .outputs={cfg.name}, .inputs=objects};
   buildfile << "default " << cfg.name << '\n';
   spdlog::debug("successfully generated buildfile!");
 }
