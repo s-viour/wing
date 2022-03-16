@@ -52,6 +52,9 @@ int run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
   // get arguments into correct types for handling
   auto cmd = res["command"].as<std::string>();
   auto args = res["arguments"].as<std::vector<std::string>>();
+  if (std::all_of(args.begin(), args.end(), [](const std::string& s) { return s.empty(); })) {\
+    args.clear();
+  }
   // special case, handle `help` command explicitly
   if (cmd == "help") {
     fmt::print("{}", cli.help());

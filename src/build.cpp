@@ -23,21 +23,33 @@ wing::project wing::load_project(const fs::path& dir) {
   auto cfg = load_config(dir / "wing.toml");
   project prj(std::move(cfg), dir);
 
+  std::vector<fs::path> valid_exts{".cpp", ".cxx", ".cc"};
+
   // add source and header files
   // use recursive_directory_iterator to make sure we find
   // every single source file
   fs::recursive_directory_iterator src(dir / "src");
-  for (auto& file : src) {
-    prj.add_src(file);
+  for (auto& p : src) {
+    auto pred = [p](auto val) { return val == p.path().extension(); };
+    if (std::none_of(valid_exts.begin(), valid_exts.end(), pred)) {
+      continue;
+    }
+    prj.add_src(p);
   }
 
+  // for now, add both include/ and src/ as include directories
   if (fs::exists(dir / "include")) {
-    // non-recursive directory traversal for the include folder
-    // we only want to go one-level deep here since the organization
-    // in the include folder actually matters
-    fs::directory_iterator include(dir / "include");
-    for (auto& file : include) {
-      prj.add_include(file);
+    prj.add_include(dir / "include");
+  }
+  prj.add_include(dir / "src");
+
+  // if vcpkg directory is present, attempt to find its include too
+  if (fs::exists(dir / "vcpkg")) {
+    prj.add_include(dir / "vcpkg/installed/x64-linux/include");
+    fs::directory_iterator vcpkg_libs(dir / "vcpkg/installed/x64-linux/lib");
+    for (auto& l : vcpkg_libs) {
+      if (!l.is_regular_file()) continue;
+      prj.add_library(l);
     }
   }
 
@@ -46,38 +58,29 @@ wing::project wing::load_project(const fs::path& dir) {
 
 
 void wing::generate_buildfile(const project& prj) {
-  spdlog::debug("generating buildfile...");
+  spdlog::debug("generating buildfile for project {}", prj.dir().string());
 
   auto& cfg = prj.cfg();
   auto& dir = prj.dir();
-  auto excfg = load_config(dir / "wing.toml");
-
-
   auto build_dir = dir / "build";
   fs::create_directory(build_dir);
 
+  // generate variables
+  // this includes generating the $cflags and $libs variables
+  // which will include parsing include files and lib files
   std::ofstream buildfile((build_dir / "build.ninja").string());
   buildfile 
-    << ninja_variable{"cflags", "-Wall -I../include"}
+    << ninja_variable{"cflags", "-Wall"}
     << ninja_variable{"cxx", "c++"};
 
-  fs::directory_entry vcpkg(dir / "vcpkg");
-  if (vcpkg.exists()) {
-    buildfile
-      << ninja_variable{"cflags", "$cflags -I../vcpkg/installed/x64-linux/include"};
-      //<< ninja_variable{"ldflags", "-L../vcpkg/installed/x64-linux/lib"};
-    
-    {
-      fs::directory_iterator libs(dir / "vcpkg/installed/x64-linux/debug/lib");
-      for (auto& entry : libs) {
-        if (!entry.is_regular_file()) {
-          continue;
-        }
-        buildfile << ninja_variable{"libs", "$libs " + entry.path().string()};
-      }
-    }
+  for (auto& inc : prj.includes()) {
+    buildfile << ninja_variable{"cflags", fmt::format("$cflags -I{}", inc.string())};
+  }
+  for (auto& lib : prj.libs()) {
+    buildfile << ninja_variable{"libs", fmt::format("$libs {}", lib.string())};
   }
   
+  // generate the necessary rules for building
   buildfile
     << ninja_rule{
       .name="cc",
@@ -88,23 +91,18 @@ void wing::generate_buildfile(const project& prj) {
     }
     << ninja_rule{"link", "$cxx -o $out $in $ldflags -Wl,--start-group $libs -Wl,--end-group -lpthread -lrt"};
 
-  
 
-
-  std::vector<fs::path> outputs;
-  auto valid_exts = std::vector{".cpp", ".cxx", ".cc"};
-  for (auto& p : fs::recursive_directory_iterator("src")) {
-    auto pred = [p](auto val) { return val == p.path().extension(); };
-    if (std::none_of(valid_exts.begin(), valid_exts.end(), pred)) {
-      continue;
-    }
-    auto path = ".." / p.path();
-    auto input = std::vector<fs::path>{path};
-    auto output = path.filename().concat(".o");
-    buildfile << ninja_build{.command="cc", .outputs = output, .inputs = input};
-    outputs.push_back(output);
+  // generate build commands for src files
+  std::vector<fs::path> objects;
+  for (auto& s : prj.sources()) {
+    auto output = s.filename();
+    output.replace_extension(".o");
+    objects.push_back(output);
+    buildfile << ninja_build{.command="cc", .outputs={output}, .inputs={s}};
   }
-  buildfile << ninja_build{.command="link", .outputs = cfg.name, .inputs=outputs};
+
+  // generate link command and default
+  buildfile << ninja_build{.command="link", .outputs={"wing"}, .inputs=objects};
   buildfile << "default " << cfg.name << '\n';
   spdlog::debug("successfully generated buildfile!");
 }
