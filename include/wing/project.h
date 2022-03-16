@@ -26,6 +26,7 @@ namespace wing {
     std::vector<fs::path> include_paths;
     std::vector<fs::path> source_files;
     std::vector<fs::path> lib_files;
+    bool needs_install = false;
 
   public:
     // constructor that takes ownership of a config
@@ -38,6 +39,7 @@ namespace wing {
     void add_include(const fs::path&);
     void add_src(const fs::path&);
     void add_library(const fs::path&);
+    void set_needs_install(const bool);
     const project_config& cfg() const;
     const fs::path& dir() const;
     const std::vector<fs::path>& includes() const;

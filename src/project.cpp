@@ -12,3 +12,4 @@ const fs::path& project::dir() const { return project_dir; }
 const std::vector<fs::path>& project::includes() const { return include_paths; }
 const std::vector<fs::path>& project::sources() const { return source_files; }
 const std::vector<fs::path>& project::libs() const { return lib_files; };
+void project::set_needs_install(const bool b) { needs_install = b; }

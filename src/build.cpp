@@ -46,10 +46,16 @@ wing::project wing::load_project(const fs::path& dir) {
   // if vcpkg directory is present, attempt to find its include too
   if (fs::exists(dir / "vcpkg")) {
     prj.add_include(dir / "vcpkg/installed/x64-linux/include");
-    fs::directory_iterator vcpkg_libs(dir / "vcpkg/installed/x64-linux/lib");
-    for (auto& l : vcpkg_libs) {
-      if (!l.is_regular_file()) continue;
-      prj.add_library(l);
+    try {
+      fs::directory_iterator vcpkg_libs(dir / "vcpkg/installed/x64-linux/lib");
+      for (auto& l : vcpkg_libs) {
+        if (!l.is_regular_file()) continue;
+        prj.add_library(l);
+      }
+    } catch (const fs::filesystem_error&) {
+      // this is a bit of a hack, and we should probably find a better solution
+      // but if this directory iterator fails, then we need an install pass
+      prj.set_needs_install(true);
     }
   }
 

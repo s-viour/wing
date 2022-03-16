@@ -49,6 +49,7 @@ namespace wing {
     const wing::project& get_project() const;
 
     void add_tool(const std::string&, const fs::path&);
+    void set_needs_install(bool);
     tool& get_tool(const std::string&);
   };
 }
