@@ -11,6 +11,10 @@ namespace fs = std::filesystem;
 
 
 namespace wing {
+  /// represents a single file within a project template
+  /// this is consumed by the project_template::create to know how to create
+  /// the project files
+  ///
   struct project_file {
     typedef enum {DIRECTORY, FILE} project_file_type;
 

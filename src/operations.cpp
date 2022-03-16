@@ -8,7 +8,6 @@
 #include <wing/project.h>
 
 
-
 int run_build(wing::application& app) {
   wing::generate_buildfile(app.get_project());
   return wing::build_dir(app);
@@ -29,27 +28,6 @@ int run_new(wing::application& app) {
   return 0;
 }
 
-/*
- * not sure if this command needs to come back
-class init_vcpkg_operation : public wing::operation {
-public:
-  void run(wing::app_options&& _opts, const std::vector<std::string>&) {
-    auto opts = std::move(_opts);
-    opts
-      .add_required_tool("git");
-    auto app = wing::create_application(opts);
-    auto git = app.get_tool("git");
-    auto path = fs::current_path() / "vcpkg";
-    git.execute({"clone", "https://github.com/microsoft/vcpkg.git", path.string()});
-    wing::tool bootstrap("bootstrap", fs::path("./vcpkg/bootstrap-vcpkg.sh"));
-    if (bootstrap.execute({}) != 0) {
-      fmt::print(stderr, "bootstrap script failed to execute!\n");
-    }
-  }
-};
-*/
-
-
 int run_install(wing::application& app) {
   spdlog::debug("running install");
   auto cfg = app.get_config();
@@ -65,7 +43,6 @@ int run_install(wing::application& app) {
   }
   return 0;
 }
-
 
 int run_run(wing::application& app) {
   const auto& cfg = app.get_config();

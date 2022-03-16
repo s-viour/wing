@@ -12,12 +12,16 @@ namespace fs = std::filesystem;
 namespace wing {
   using namespace std;
 
+  /// represents a variable in a build.ninja file
+  /// this structure should be initialized via designated initializers and then written to an ofstream
   struct ninja_variable {
     const string key;
     const string value;
     const unsigned indent = 0;
   };
 
+  /// represents a rule in a build.ninja file
+  ///
   struct ninja_rule {
     const string name;
     const string command;
@@ -27,12 +31,16 @@ namespace wing {
     // some fields omitted because they are not used currently
   };
 
+  /// represents a build directive in a build.ninja file
+  ///
   struct ninja_build {
     const std::string command;
     const fs::path outputs;
     const vector<fs::path> inputs;
   };
 
+  /// represents a comment in a build.ninja file
+  ///
   struct ninja_comment {
     const string comment;
   };

@@ -10,6 +10,8 @@ namespace fs = std::filesystem;
 
 
 namespace wing {
+  /// error thrown by tools when they fail to execute or perform their job correctly
+  ///
   class tool_error : public std::exception {
   private:
     std::string msg;
@@ -18,6 +20,9 @@ namespace wing {
     const char* what();
   };
 
+  /// represents any external executable tool invoked by wing
+  /// this is basically just a lightweight wrapper over-top of reproc++
+  ///
   class tool {
   private:
     fs::path tool_path;
@@ -29,6 +34,10 @@ namespace wing {
     int execute(const std::vector<std::string>&);
   };
 
+  /// attempts to find an executable file by the given name
+  /// currently, this function searches the current directory and the PATH
+  /// returns an empty optional if the tool was not found
+  ///
   std::optional<fs::path> find_tool(const std::string&);
 }
 

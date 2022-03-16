@@ -14,6 +14,7 @@
 #include <wing/operations.h>
 namespace fs = std::filesystem;
 
+
 int run(const cxxopts::Options&, const cxxopts::ParseResult&);
 
 int main(int argc, char* argv[]) {
@@ -66,11 +67,12 @@ int run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
     return 1;
   }
 
-  auto& op = found->second;
-  application app(args);
+  // initialize application in current directory
+  application app(cmd, args);
 
   // load all required tools
   // if any of them fail to be found, exit with error
+  auto& op = found->second;
   for (auto& rqt : op.required_tools) {
     auto tool = wing::find_tool(rqt);
     if (!tool) {

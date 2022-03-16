@@ -14,8 +14,19 @@
 namespace fs = std::filesystem;
 
 namespace wing {
+  /// class that represents the application state within a particular directory
+  /// the application state consists of:
+  ///   * cli_command       - command to be executed by the application
+  ///   * cli_args          - arguments to the application
+  ///   * wd_is_project     - whether or not the application has been init'd inside a project
+  ///   * working_directory - the working directory of the application
+  ///   * build_directory   - build directory of the project (may be unset)
+  ///   * directory_project - optional value storing the project structure (project.h) if wd_is_project is true
+  ///   * loaded_tools      - mapping of tools usable by operations
+  ///
   class application {
   private:
+    std::string cli_command;
     std::vector<std::string> cli_args;
 
     bool wd_is_project;
@@ -27,9 +38,8 @@ namespace wing {
 
   public:
     application() : application(fs::current_path(), {}) {}
-    application(const fs::path& p) : application(p, {}) {};
-    application(const std::vector<std::string>& args) : application(fs::current_path(), args) {};
-    application(const fs::path&, const std::vector<std::string>&);
+    application(const std::string& cmd, const std::vector<std::string>& args) : application(fs::current_path(), cmd, args) {};
+    application(const fs::path&, const std::string&, const std::vector<std::string>&);
     
     const bool is_project() const;
     const fs::path& get_working_dir() const;
