@@ -86,11 +86,20 @@ int run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
   }
 
   // check directory requirements
-  // * operations that require a project-directory may not be used OUTSIDE one
-  // * operations that don't require a project-directory may be used inside one, though
+  //   * operations that require a project-directory may not be used OUTSIDE one
+  //   * operations that don't require a project-directory may be used inside one, though
   if (op.requires_project && !app.is_project()) {
     fmt::print(stderr, "current directory is not valid project!\n");
     return 1;
+  }
+  if (op.requires_loaded_project) {
+    try {
+      app.load_project();
+    } catch (const wing::project_error& e) {
+      fmt::print(stderr, "error in project: {}", e.what());
+    } catch (const wing::config_error& e) {
+      fmt::print(stderr, "error in config: {}", e.what());
+    }
   }
   op.run(app);
   return 0;

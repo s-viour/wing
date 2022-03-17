@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
+#include <exception>
 #include <cxxopts.hpp>
 #include <wing/tools.h>
 #include <wing/config.h>
@@ -48,6 +49,7 @@ namespace wing {
     const project_config& get_config() const;
     const wing::project& get_project() const;
 
+    void load_project();
     void add_tool(const std::string&, const fs::path&);
     void set_needs_install(bool);
     tool& get_tool(const std::string&);

@@ -7,20 +7,18 @@ wing::application::application(const fs::path& cwd, const std::string& cmd, cons
   cli_args = v;
   working_directory = cwd;
   wd_is_project = fs::exists(cwd / "wing.toml");
-  if (is_project()) {
-    // try to load the project, but if any key directories are missing
-    // then unset wd_is_project
-    try {
-      directory_project = load_project(cwd);
-    } catch (const wing::project_error& e) {
-      directory_project = {};
-      wd_is_project = false;
-    }
-
+  if (wd_is_project) {
     // NOTE:
     // this may be changed later, but for now it's always gonna be `/build`
-    build_directory = cwd / "build";
+    build_directory = working_directory / "build";
   }
+}
+
+void wing::application::load_project() {
+  // try to load the project, but if any key directories are missing
+  // then unset wd_is_project
+  directory_project = wing::load_project(working_directory);
+  
 }
 
 const bool wing::application::is_project() const { return wd_is_project; }

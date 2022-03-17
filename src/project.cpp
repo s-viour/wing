@@ -4,6 +4,7 @@
 namespace fs = std::filesystem;
 using namespace wing;
 
+
 void project::add_include(const fs::path& f) { include_paths.push_back(f); }
 void project::add_src(const fs::path& f) { source_files.push_back(f); }
 void project::add_library(const fs::path& f) { lib_files.push_back(f); }

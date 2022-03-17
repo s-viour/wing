@@ -11,9 +11,15 @@ namespace wing {
   typedef std::function<int(wing::application&)> operation_function;
 
   /// represents an operation (essentially, just a command) and its set of requirements to run
-  /// this structure may be updated as ope
+  /// this structure may be updated as necessary
+  /// fields:
+  ///   * requires_project - whether or not this operation needs to be executed within a project directory
+  ///   * requires_loaded_project - whether or not this operation needs a fully-loaded project structure
+  ///   * required_tools - list of external tools this operation needs
+  ///   * run - pointer to the function that runs this operation
   struct operation {
     bool requires_project;
+    bool requires_loaded_project;
     std::vector<std::string> required_tools;
     operation_function run;
   };

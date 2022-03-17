@@ -59,26 +59,31 @@ std::unordered_map<std::string, wing::operation> wing::load_operations() {
   std::unordered_map<std::string, operation> m;
   auto build_operation = wing::operation {
     .requires_project = true,
+    .requires_loaded_project = true,
     .required_tools = {"ninja", "c++"},
     .run = run_build
   };
   auto clean_operation = wing::operation {
     .requires_project = true,
+    .requires_loaded_project = false,
     .required_tools = {"ninja"},
     .run = run_clean
   };
   auto new_operation = wing::operation {
     .requires_project = false,
+    .requires_loaded_project = false,
     .required_tools = {},
     .run = run_new
   };
   auto run_operation = wing::operation {
     .requires_project = false,
+    .requires_loaded_project = true,
     .required_tools = {},
     .run = run_run
   };
   auto install_operation = wing::operation {
     .requires_project = true,
+    .requires_loaded_project = true,
     .required_tools = {"vcpkg/vcpkg"},
     .run = run_install
   };
