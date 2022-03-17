@@ -1,5 +1,4 @@
-#ifndef __WING_TEMPLATE_H__
-#define __WING_TEMPLATE_H__
+#pragma once
 
 
 #include <string>
@@ -39,6 +38,3 @@ namespace wing {
 
   void project_from_template(const std::string&, const fs::path&);
 }
-
-
-#endif

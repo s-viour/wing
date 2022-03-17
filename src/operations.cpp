@@ -1,7 +1,5 @@
 #include <spdlog/spdlog.h>
 #include <fmt/core.h>
-#include <wing/application.h>
-#include <wing/build.h>
 #include <wing/template.h>
 #include <wing/operations.h>
 #include <wing/application.h>

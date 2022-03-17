@@ -1,5 +1,4 @@
-#ifndef __WING_CONFIG_H__
-#define __WING_CONFIG_H__
+#pragma once
 
 
 #include <string>
@@ -42,6 +41,3 @@ namespace wing {
   ///
   wing::project_config load_config(const fs::path&);
 }
-
-
-#endif

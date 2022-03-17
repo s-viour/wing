@@ -1,5 +1,4 @@
-#ifndef __WING_HELP_H__
-#define __WING_HELP_H__
+#pragma once
 
 #include <string>
 
@@ -8,5 +7,3 @@ namespace wing {
   const std::string usage_str();
   const std::string help_str();
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef __WING_NINJA_H__
-#define __WING_NINJA_H__
+#pragma once
 
 
 #include <filesystem>
@@ -51,6 +50,3 @@ std::ostream& operator<<(std::ostream&, const ninja_variable&);
 std::ostream& operator<<(std::ostream&, const ninja_rule&);
 std::ostream& operator<<(std::ostream&, const ninja_build&);
 std::ostream& operator<<(std::ostream&, const ninja_comment&);
-
-
-#endif

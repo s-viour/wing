@@ -1,5 +1,5 @@
-#ifndef __WING_PROJECT_H__
-#define __WING_PROJECT_H__
+#pragma once
+
 
 #include <string>
 #include <vector>
@@ -9,6 +9,9 @@
 namespace fs = std::filesystem;
 
 namespace wing {
+  // forward declaration of application to avoid circular dep w/ application.h
+  class application;
+  
   /// error thrown whenever project creation fails
   /// this can be due to the folder not being a valid project, or the project
   /// config file not being valid
@@ -61,6 +64,8 @@ namespace wing {
     const std::vector<fs::path>& sources() const;
     const std::vector<fs::path>& libs() const;
   };
-}
 
-#endif
+  project load_project(const fs::path&);
+  void generate_buildfile(const project&);
+  int build_dir(application&);
+}

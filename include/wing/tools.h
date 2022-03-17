@@ -1,23 +1,24 @@
-#ifndef __WING_TOOLS_H__
-#define __WING_TOOLS_H__
+#pragma once
 
 
 #include <string>
 #include <vector>
 #include <optional>
 #include <filesystem>
+#include <fmt/core.h>
 namespace fs = std::filesystem;
 
 
 namespace wing {
   /// error thrown by tools when they fail to execute or perform their job correctly
   ///
-  class tool_error : public std::exception {
+  class tool_error : public std::runtime_error {
   private:
-    std::string msg;
+    std::error_code ec;
   public:
-    tool_error(const std::error_code&);
-    const char* what();
+    tool_error() : std::runtime_error("tool error") {}
+    tool_error(const std::error_code& ec)
+      : std::runtime_error(fmt::format("error code: {}", ec.value())) {}
   };
 
   /// represents any external executable tool invoked by wing
@@ -40,6 +41,3 @@ namespace wing {
   ///
   std::optional<fs::path> find_tool(const std::string&);
 }
-
-
-#endif

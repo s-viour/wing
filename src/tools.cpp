@@ -11,11 +11,6 @@ namespace fs = std::filesystem;
 
 using namespace wing;
 
-tool_error::tool_error(const std::error_code& ec) {
-  msg = fmt::format("error code: {}", ec.value());
-}
-
-const char* tool_error::what() { return msg.c_str(); }
 
 int tool::execute(const std::vector<std::string>& args) {
   reproc::options opts;

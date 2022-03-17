@@ -1,11 +1,11 @@
-#ifndef __WING_OPERATIONS_H__
-#define __WING_OPERATIONS_H__
+#pragma once
+
 
 #include <string>
 #include <memory>
 #include <unordered_map>
 #include <functional>
-#include <wing/build.h>
+#include <wing/application.h>
 
 namespace wing {
   typedef std::function<int(wing::application&)> operation_function;
@@ -30,5 +30,3 @@ namespace wing {
   /// and map them to their names
   std::unordered_map<std::string, operation> load_operations();
 }
-
-#endif 

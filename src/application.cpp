@@ -1,5 +1,4 @@
 #include <wing/application.h>
-#include <wing/build.h>
 
 
 wing::application::application(const fs::path& cwd, const std::string& cmd, const std::vector<std::string>& v) {

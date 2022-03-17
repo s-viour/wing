@@ -1,5 +1,4 @@
-#ifndef __WING_APPLICATION_H__
-#define __WING_APPLICATION_H__
+#pragma once
 
 
 #include <string>
@@ -56,5 +55,3 @@ namespace wing {
   };
 }
 
-
-#endif

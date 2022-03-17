@@ -17,9 +17,9 @@ std::ostream& operator<<(std::ostream& o, const wing::ninja_variable& v) {
 
 std::ostream& operator<<(std::ostream& o, const wing::ninja_rule& r) {
   o << "rule " << r.name << '\n'
-    << ninja_variable{"command", r.command, .indent = 1};
+    << ninja_variable{.key="command", .value=r.command, .indent = 1};
   if (r.depfile)
-    o << ninja_variable{"depfile", r.depfile.value(), .indent = 1};
+    o << ninja_variable{.key="depfile", .value=r.depfile.value(), .indent = 1};
   return o;
 }
 std::ostream& operator<<(std::ostream& o, const wing::ninja_build& b) {
