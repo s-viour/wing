@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 #include <iostream>
 #include <exception>
 #include <fmt/core.h>
@@ -11,6 +12,7 @@
 #include <wing/tools.h>
 #include <wing/application.h>
 #include <wing/config.h>
+#include <wing/help.h>
 #include <wing/operations.h>
 namespace fs = std::filesystem;
 
@@ -21,7 +23,7 @@ int main(int argc, char* argv[]) {
   // setup CLI options 
   cxxopts::Options options("wing", "experimental c++ build system");
   options.add_options()
-    ("h,help", "show help", cxxopts::value<std::string>())
+    ("h,help", "show help")
     ("d,debug", "enable debug logging")
     ("command", "command to run", cxxopts::value<std::string>()->default_value("help"))
     ("arguments", "arguments to the command", cxxopts::value<std::vector<std::string>>()->default_value({}));
@@ -35,6 +37,10 @@ int main(int argc, char* argv[]) {
     if (result["debug"].count()) {
       spdlog::set_level(spdlog::level::debug);
     }
+    if (result["help"].count()) {
+      fmt::print(wing::help_str());
+      return 0;
+    }
     
     // delegate parsed-argument handling to run function
     // it'll return success or failure based on how that goes
@@ -43,7 +49,7 @@ int main(int argc, char* argv[]) {
     // if an exception was thrown during parse
     // print help and exit
     fmt::print(stderr, "invalid arguments!\n");
-    fmt::print(stderr, "{}", options.help({"", "help", "debug"}));
+    fmt::print(stderr, wing::usage_str());
     return 1;
   }
 }
@@ -57,7 +63,7 @@ int run(const cxxopts::Options& cli, const cxxopts::ParseResult& res) {
   }
   // special case, handle `help` command explicitly
   if (cmd == "help") {
-    fmt::print("{}", cli.help());
+    fmt::print("{}", wing::help_str());
     return 0;
   }
 
